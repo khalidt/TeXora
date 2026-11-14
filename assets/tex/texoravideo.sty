@@ -1,7 +1,8 @@
 %% texoravideo.sty -- video and GIFs in LaTeX slides, played by TeXora.
 %%
-%% TeXora ships this package and finds it by itself when it compiles; there is no package to install or
-%% copy. GIFs play in TeXora by themselves; MP4 playback uses VLC or ffmpeg installed on your computer.
+%% TeXora ships this package and finds it by itself when it compiles; there is no package to install.
+%% It also puts a copy beside the presentation, so the document compiles in other LaTeX editors too.
+%% GIFs play in TeXora by themselves; MP4 playback uses VLC or ffmpeg installed on your computer.
 %%
 %%   \usepackage{texoravideo}
 %%   \includevideo[<graphics options>][<video options>]{<file>}
@@ -23,13 +24,18 @@
 %% package can name it too. On the page the poster is an ordinary picture, which every PDF viewer
 %% shows; over it is a link to "texora-video:<options>:<path>", which TeXora plays inside the slide.
 %% Other viewers do nothing with such a link (Acrobat may ask about it).
+%%
+%% In another LaTeX editor: keep this file and the texora-video folder beside the .tex file, and every
+%% video shows its poster. A video without a poster yet shows as a dark box with its name, never an
+%% error. This file was written by TeXora; it is safe to share it with the document.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{texoravideo}[2026/11/08 v1.0 Video in slides, played by TeXora]
+\ProvidesPackage{texoravideo}[2026/11/11 v1.1 Video in slides, played by TeXora]
 \RequirePackage{graphicx}
 \RequirePackage{xkeyval}
 \RequirePackage{pdftexcmds}
 \RequirePackage{iftex}
 \RequirePackage{hyperref}
+\RequirePackage{xcolor}
 
 \def\tv@dir{texora-video}
 
@@ -47,6 +53,27 @@
 \define@key{texoravideo}{posterat}{\edef\tv@at{\number\numexpr#1\relax}}
 \define@key{texoravideo}{poster}{\def\tv@poster{#1}}
 
+% Width and height for the stand-in box, read from the graphics options; others are left alone.
+\define@key{texoravideo@size}{width}{\def\tv@w{#1}}
+\define@key{texoravideo@size}{height}{\def\tv@h{#1}}
+
+% A dark 16:9 box with a play sign and the clip's name, drawn by LaTeX itself: used when the clip has
+% no poster yet (in another editor, before TeXora has seen the document).
+\newcommand\tv@box[2]{%
+  \def\tv@w{}\def\tv@h{}%
+  \setkeys*{texoravideo@size}{#1}%
+  \ifx\tv@w\@empty
+    \ifx\tv@h\@empty \dimen@=0.5\linewidth \dimen@ii=0.5625\dimen@
+    \else \dimen@ii=\tv@h\relax \dimen@=1.7778\dimen@ii \fi
+  \else
+    \dimen@=\tv@w\relax
+    \ifx\tv@h\@empty \dimen@ii=0.5625\dimen@ \else \dimen@ii=\tv@h\relax \fi
+  \fi
+  \advance\dimen@ by -2\fboxsep \advance\dimen@ii by -2\fboxsep
+  \colorbox{black!82}{\parbox[c][\dimen@ii][c]{\dimen@}{\centering\color{white}%
+    {\Large$\triangleright$}\par\smallskip{\footnotesize\ttfamily #2}\par}}%
+}
+
 \NewDocumentCommand\includevideo{O{} O{} m}{%
   \begingroup
   \tv@autoplayfalse\tv@loopfalse\tv@mutefalse
@@ -57,8 +84,10 @@
   \edef\tv@relstr{\expandafter\detokenize\expandafter{\tv@rel}}%
   \edef\tv@hash{\expandafter\tv@mdfive\expandafter{\tv@rel}}%
   \edef\tv@made{\tv@dir/\tv@hash.jpg}%
-  % Your poster if it exists, else the one TeXora made, else a plain placeholder.
-  \def\tv@image{texoravideo-placeholder.png}%
+  % Your poster if it exists, else the one TeXora made, else TeXora's placeholder picture (found while
+  % TeXora compiles), else a box drawn by LaTeX (in another editor).
+  \def\tv@image{}%
+  \IfFileExists{texoravideo-placeholder.png}{\def\tv@image{texoravideo-placeholder.png}}{}%
   \IfFileExists{\tv@made}{\let\tv@image\tv@made}{}%
   \ifx\tv@poster\@empty\else
     \IfFileExists{\tv@poster}{\let\tv@image\tv@poster}%
@@ -66,7 +95,13 @@
   \fi
   \edef\tv@flags{a\iftv@autoplay1\else0\fi l\iftv@loop1\else0\fi m\iftv@mute1\else0\fi p\tv@at}%
   \hypersetup{hidelinks}%
-  \href{texora-video:\tv@flags:\tv@relstr}{\includegraphics[#1]{\tv@image}}%
+  \ifx\tv@image\@empty
+    \PackageWarning{texoravideo}{Video `\tv@relstr' has no poster yet. Open the presentation in
+      TeXora once, or keep its texora-video folder with it}%
+    \href{texora-video:\tv@flags:\tv@relstr}{\tv@box{#1}{\tv@relstr}}%
+  \else
+    \href{texora-video:\tv@flags:\tv@relstr}{\includegraphics[#1]{\tv@image}}%
+  \fi
   \endgroup
 }
 

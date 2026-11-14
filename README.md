@@ -40,6 +40,7 @@ can be edited in the built-in LaTeX studio or in any other editor.
 | **Required packages**    | Lists every package, theme and program a file needs, with how to install the missing ones.                                                     |
 | **Speaker notes**        | From Beamer notes pages, `\note{}`, `.pdfpc` files or a Markdown file; editable in the app, in any language.                                   |
 | **Animations and video** | `animate` package animations, GIFs and video clips play inside the slide ([see it](#animations)); video uses an installed ffmpeg or VLC. |
+| **Modern pictures**      | AVIF, WebP, JPEG XL, GIF, TIFF, BMP (built-in decoders) and HEIC/HEIF pictures in slides with `\includeimage`; the document still compiles in other LaTeX editors ([how](#pictures)). |
 | **Drawing and pointing** | Pen, highlighter, eraser, laser pointer and zoom to an area. Ink is kept per slide.                                                            |
 | **Navigation**           | Contents, bookmarks, question marks and full-text search in a sidebar. Tabs for several presentations.                                         |
 | **Analytics**            | Time on each slide for every rehearsal, compared with the previous one.                                                                        |
@@ -73,6 +74,8 @@ Each system has an installer and a portable package in the [latest release](http
 | Presenting `PDF` files    | nothing                                                                                                                           |
 | Compile `.tex` files      | A TeX distribution: **MacTeX** (macOS), **MiKTeX** or TeX Live (Windows), **TeX Live** (Linux)                                    |
 | Play MP4 and other videos | **ffmpeg** (plays inside the slide, with sound through ffplay) or **VLC** (plays in its own window). Optional; GIFs need neither. |
+| Use AVIF, WebP, JPEG XL, GIF, TIFF or BMP pictures | Nothing: TeXora decodes them itself. |
+| Use HEIC/HEIF pictures | Nothing on macOS (built-in `sips`). Elsewhere **libheif** (`heif-dec`), **ImageMagick** or ffmpeg. |
 
 Every release file is listed with its checksum in `SHA256SUMS.txt`; `VALIDATION.txt` records how each
 file was tested.
@@ -385,6 +388,77 @@ ls frames | wc -l                      # number of frames
 \animategraphics[autoplay,loop,width=0.5\textwidth]{10}{frames/f}{1}{30}   % 30 = number of frames
 ```
 
+</details>
+
+### Using another LaTeX editor
+
+A presentation with TeXora's videos or pictures can be written and compiled in any LaTeX editor
+(TeXstudio, VS Code, Overleaf, ...) without errors:
+
+1. **Open the `.tex` file in TeXora once** (or compile it there). TeXora puts `texoravideo.sty` and
+   `texoraimage.sty` beside the file, makes the video posters (`texora-video/`) and converts the
+   pictures (`texora-images/`).
+2. **Keep those files and folders with the `.tex` file**, also when copying or uploading it (for
+   Overleaf, upload them too).
+3. Compile in any editor: every video shows its poster and every picture shows. Videos play, and
+   presenting works, in TeXora.
+
+Before step 1, copy [`texoravideo.sty` and `texoraimage.sty`](assets/tex) next to the `.tex` file by hand.
+The document then compiles anywhere; a video or picture TeXora has not prepared yet shows as a box with
+its file name and a LaTeX warning, never an error. Videos and pictures added later get their poster or
+copy the next time TeXora compiles the file. Tested with pdfLaTeX, XeLaTeX and LuaLaTeX.
+
+### Pictures
+
+pdfLaTeX, XeLaTeX and LuaLaTeX cannot read **AVIF**, **WebP**, **JPEG XL**, **GIF**, **TIFF**, **BMP** or
+**HEIC/HEIF** pictures. With TeXora's package `texoraimage`, they work like any other picture, and the
+document still compiles in other LaTeX editors.
+
+```latex
+\usepackage{texoraimage}
+...
+\includeimage[width=0.5\linewidth]{images/photo.heic}
+\includeimage[height=3cm]{logo.webp}
+```
+
+The options are those of `\includegraphics`. PNG, JPEG, PDF and EPS pictures go straight to
+`\includegraphics`, so `\includeimage` can be used for every picture.
+
+<details>
+<summary>How it works, other editors, converters and safety</summary>
+<br>
+
+**In TeXora.** Before LaTeX runs, each such picture is converted to a JPEG
+(a PNG when it has transparency, which is kept) in a `texora-images` folder beside the presentation,
+at most 2400 pixels on its longer side. LaTeX includes that copy. A copy is made again only when its
+picture changes; copies no longer used are removed.
+
+**In other LaTeX editors.** TeXora puts `texoraimage.sty` beside the presentation. Keep it and the
+`texora-images` folder with the `.tex` file (for example when uploading to Overleaf), and the document
+compiles everywhere with every picture. A picture that has not been converted yet shows as a framed
+box with its file name and a LaTeX warning, never an error. Tested with pdfLaTeX, XeLaTeX and LuaLaTeX.
+
+**Decoders.** Royalty-free formats are decoded inside TeXora, in pure Rust; nothing needs to be
+installed:
+
+| Format | Decoder |
+|---|---|
+| WebP, GIF (first frame), TIFF, BMP | the [`image`](https://crates.io/crates/image) crate |
+| JPEG XL | [`jxl-oxide`](https://crates.io/crates/jxl-oxide) |
+| AVIF | [`avif-decode`](https://crates.io/crates/avif-decode) with [`rav1d`](https://github.com/memorysafety/rav1d), the memory-safe Rust port of dav1d, built without its assembly |
+
+**HEIC/HEIF** pictures use HEVC, which is covered by active patents, so TeXora contains no decoder for
+them. It uses one already on the computer, in this order, and skips any that fails: `heif-dec` or
+`heif-convert` (libheif), `sips` (built into macOS), `magick` (ImageMagick), then the ffmpeg set in
+**Settings > Video**. The same converters stand in if a built-in decoder cannot read an unusual file.
+
+**Problems** (warnings under Problems, with the line; the slides still build): a missing picture, a file
+whose first bytes are not that format, an unsupported format, a path outside the presentation's
+folder, or no HEIC converter on the computer.
+
+**Safety.** Only files inside the presentation's folder are used, only when their first bytes really
+are that format. Converters get full paths as separate arguments, never through a shell; ImageMagick is
+told the format so it uses only that reader, and ffmpeg reads local files only.
 </details>
 
 ### Videos

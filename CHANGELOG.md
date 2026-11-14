@@ -1,6 +1,20 @@
 # Changelog
 
-All notable changes to TeXora. The newest version is first.
+All notable changes to TeXora. The newest version is first. Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH, where MINOR adds features that keep existing documents working and PATCH only fixes.
+
+## 1.6.0
+
+### New
+
+- **AVIF, WebP, JPEG XL, GIF, TIFF, BMP and HEIC/HEIF pictures.** Write `\usepackage{texoraimage}` and `\includeimage[width=0.5\linewidth]{photo.avif}`; the options are those of `\includegraphics`. pdfLaTeX, XeLaTeX and LuaLaTeX cannot read these formats, so before LaTeX runs TeXora converts each one to an ordinary JPEG (PNG when it has transparency, which is kept) in a `texora-images` folder beside the presentation, and LaTeX includes that copy. A copy is made again only when its picture changes. PNG, JPEG, PDF and EPS pictures go straight to `\includegraphics`, so `\includeimage` works for any picture.
+- **Works in other LaTeX editors.** TeXora puts `texoraimage.sty` beside the presentation. With it and the `texora-images` folder, the document compiles in any LaTeX editor (tested with pdfLaTeX, XeLaTeX and LuaLaTeX) and shows every picture. Without the folder it still compiles, with a framed box naming each picture instead of an error.
+
+### Fixed
+
+- **Videos in other LaTeX editors.** A presentation using `\usepackage{texoravideo}` stopped with "File `texoravideo.sty' not found" in other editors, because the package lived only inside TeXora. TeXora now puts `texoravideo.sty` beside the presentation too (keeping it up to date, and leaving alone any file of that name that is not TeXora's). With the `texora-video` folder every video shows its poster; a video without a poster yet is a dark box with a play sign and its name, drawn by LaTeX, instead of a missing-file error. See "Using another LaTeX editor" in the README.
+- **Built-in decoders for royalty-free formats, in pure Rust.** WebP, GIF, TIFF and BMP are decoded by the `image` crate, JPEG XL by `jxl-oxide`, and AVIF by `avif-decode` with `rav1d` (the memory-safe Rust port of the dav1d AV1 decoder, built without its assembly). Nothing needs to be installed for these.
+- **HEIC/HEIF stays outside TeXora.** HEIC pictures use HEVC, which is covered by active patents (like H.264), so TeXora contains no decoder for it and uses one already on the computer: `heif-dec` (libheif), macOS's built-in `sips`, ImageMagick, or the ffmpeg set in Settings > Video. These also stand in if a built-in decoder cannot read an unusual file. The release check now also stops any HEVC decoder (libheif, libde265) from entering a package.
+- Missing pictures, files that are not really that format, unsupported formats and paths outside the presentation's folder are listed as warnings under Problems, with the line; the slides still build.
 
 ## 1.5.3
 

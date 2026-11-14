@@ -1,0 +1,26 @@
+# A copy of avif-decode 3.0.0 (https://github.com/kornelski/avif-decode, BSD-3-Clause, see LICENSE),
+# library only. The one change from the published crate: rav1d is used without its hand-written
+# assembly on every processor, so AVIF decoding is pure Rust and builds without an assembler.
+[package]
+edition = "2024"
+rust-version = "1.98"
+name = "avif-decode"
+version = "3.0.0"
+authors = ["Kornel <kornel@geekhood.net>"]
+description = "Convert AVIF images to PNG or decompressed pixel data"
+license = "BSD-3-Clause"
+repository = "https://github.com/kornelski/avif-decode"
+
+[lib]
+name = "avif_decode"
+path = "src/lib.rs"
+
+[dependencies]
+avif-parse = "2.1.0"
+bytemuck = "1.25"
+imgref = "1.12.3"
+log = "0.4.34"
+quick-error = "2.0.1"
+rgb = { version = "0.8.53", default-features = false, features = ["bytemuck"] }
+yuv = "0.8.19"
+rav1d = { version = "1.1.0", default-features = false, features = ["bitdepth_8", "bitdepth_16"] }

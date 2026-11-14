@@ -190,6 +190,8 @@ pub fn compile(tex: &Path, engine: Engine) -> CompileResult {
     // Videos first: their posters must be there when LaTeX looks for them. TeXora's own packages
     // (texoravideo) are found through TEXINPUTS; nothing is copied into the presentation's folder.
     let videos = crate::video_prep::prepare(&root);
+    // Pictures LaTeX cannot read (AVIF, WebP, HEIC, JPEG XL) are converted for \includeimage.
+    let images = crate::image_prep::prepare(&root);
     let texinputs = crate::video_prep::tex_dir().ok().map(|d| crate::video_prep::texinputs(&d));
     let mut pass = 0;
     let mut note = String::new();
@@ -241,7 +243,7 @@ pub fn compile(tex: &Path, engine: Engine) -> CompileResult {
     let mut problems = parse_log(&log);
     let has_error = problems.iter().any(|p| p.is_error);
     // A clip that cannot be played does not stop the slides; it is listed, at its \includevideo.
-    for (f, line, message) in videos.problems {
+    for (f, line, message) in videos.problems.into_iter().chain(images.problems) {
         let file = f.strip_prefix(&dir).map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|_| f.to_string_lossy().to_string());
         problems.push(Problem { file, line: Some(line), message, is_error: false });
     }
@@ -455,6 +457,9 @@ pub fn requirements(src: &str, engine: Engine) -> Vec<Requirement> {
     };
     for (f, _) in commands(&clean, "\\includegraphics") {
         add(ReqKind::File, f, exts(f, &["pdf", "png", "jpg", "jpeg", "eps"]), "Check the file name and folder.".to_string());
+    }
+    for u in crate::image_prep::uses_in(&clean, std::path::Path::new("")) {
+        add(ReqKind::File, &u.path, vec![u.path.clone()], "Put the picture in the .tex file's folder, or in a folder inside it written in the name ({images/photo.heic}).".to_string());
     }
     for u in crate::video_prep::uses_in(&clean, std::path::Path::new("")) {
         add(ReqKind::File, &u.path, vec![u.path.clone()], "Put the video in the .tex file's folder, or in a folder inside it written in the name ({videos/clip.mp4}).".to_string());
