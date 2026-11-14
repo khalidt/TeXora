@@ -8,6 +8,7 @@ mod bidi;
 mod rtl_edit;
 mod cli;
 mod deck;
+mod image_prep;
 mod fold;
 mod latex;
 mod media;

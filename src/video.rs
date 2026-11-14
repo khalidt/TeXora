@@ -252,7 +252,7 @@ pub fn find_vlc() -> Option<PathBuf> {
 }
 
 /// A command for a tool: no input, and no console window on Windows.
-fn tool_command(program: &Path) -> Command {
+pub(crate) fn tool_command(program: &Path) -> Command {
     let mut c = Command::new(program);
     c.stdin(Stdio::null());
     #[cfg(windows)]
@@ -264,7 +264,7 @@ fn tool_command(program: &Path) -> Command {
 }
 
 /// Runs a tool and returns what it wrote (output, errors), stopping it after `limit`.
-fn run_for(mut c: Command, limit: Duration) -> Result<(String, String), String> {
+pub(crate) fn run_for(mut c: Command, limit: Duration) -> Result<(String, String), String> {
     c.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = c.spawn().map_err(|e| e.to_string())?;
     let mut out = child.stdout.take();
@@ -312,7 +312,7 @@ pub fn test_tool(program: &Path, vlc: bool) -> Result<String, String> {
 }
 
 /// A path as the tools read it: without the `\\?\` that Windows puts in front of canonical paths.
-fn plain(path: &Path) -> String {
+pub(crate) fn plain(path: &Path) -> String {
     let s = path.to_string_lossy().to_string();
     if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
         return format!(r"\\{rest}");
@@ -405,7 +405,7 @@ fn looks_like_video(path: &Path, head: &[u8]) -> bool {
     video_magic(head) || ["mp4", "m4v", "mov", "mkv", "webm", "avi", "ogv", "flv", "mpg", "mpeg", "ts", "wmv", "3gp"].contains(&ext.as_str())
 }
 
-fn head(path: &Path) -> Result<Vec<u8>, Problem> {
+pub(crate) fn head(path: &Path) -> Result<Vec<u8>, Problem> {
     let mut f = File::open(path).map_err(|e| if e.kind() == std::io::ErrorKind::NotFound { Problem::Missing } else { Problem::Broken(e.to_string()) })?;
     let mut h = [0u8; 16];
     let n = f.read(&mut h).map_err(|e| Problem::Broken(e.to_string()))?;

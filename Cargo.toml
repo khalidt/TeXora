@@ -1,6 +1,6 @@
 [package]
 name = "texora"
-version = "1.5.3"
+version = "1.6.0"
 edition = "2021"
 description = "TeXora: a LaTeX-native presenter for Beamer and PDF slides"
 license = "PolyForm-Noncommercial-1.0.0"
@@ -15,7 +15,7 @@ path = "src/main.rs"
 eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts", "wayland", "x11", "clipboard", "links", "system_fonts"] }
 egui = "0.37"
 pdfium-render = "0.9.5"
-image = { version = "0.25", default-features = false, features = ["png", "gif", "jpeg"] }
+image = { version = "0.25", default-features = false, features = ["png", "gif", "jpeg", "tiff", "bmp", "webp"] }
 rfd = "0.17"
 serde = { version = "1", features = ["derive"] }
 unicode-bidi = "0.3"
@@ -28,6 +28,8 @@ dirs = "7"
 # MP4 and other formats play through ffmpeg or VLC that the person installed (src/video.rs). md-5 names
 # the posters.
 md-5 = "0.11"
+avif-decode = { version = "3", default-features = false }
+jxl-oxide = { version = "0.12", default-features = false }
 
 # Fonts for other writing systems (Arabic, Hebrew, Chinese, Japanese, Korean, Hindi, Thai...) come from
 # the computer itself. On Linux, fontconfig is opened when the program runs instead of being linked, so
@@ -49,3 +51,7 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 2
+
+# avif-decode, used without rav1d's assembly so AVIF decoding stays pure Rust (see the file's header).
+[patch.crates-io]
+avif-decode = { path = "crates/avif-decode" }

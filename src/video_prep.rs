@@ -100,8 +100,24 @@ pub fn tex_dir() -> std::io::Result<PathBuf> {
     std::fs::create_dir_all(&dir)?;
     let dir = dir.canonicalize().unwrap_or(dir);
     write_if_changed(&dir.join("texoravideo.sty"), STY.as_bytes())?;
+    write_if_changed(&dir.join("texoraimage.sty"), crate::image_prep::STY.as_bytes())?;
     write_if_changed(&dir.join("texoravideo-placeholder.png"), &placeholder_png())?;
     Ok(dir)
+}
+
+/// Writes one of TeXora's LaTeX packages (`name`, such as `texoravideo.sty`) beside the presentation, so
+/// the document also compiles in other LaTeX editors. A file of that name is replaced only when it is
+/// TeXora's own (it starts with `%% <name> -- `); anyone else's file is left alone.
+pub fn place_beside(dir: &Path, name: &str, content: &str) {
+    let p = dir.join(name);
+    let mark = format!("%% {name} -- ");
+    match std::fs::read_to_string(&p) {
+        Ok(old) if old == content => {}
+        Ok(old) if !old.starts_with(&mark) => {}
+        _ => {
+            let _ = std::fs::write(&p, content);
+        }
+    }
 }
 
 fn write_if_changed(p: &Path, bytes: &[u8]) -> std::io::Result<()> {
@@ -152,7 +168,7 @@ pub fn placeholder_png() -> Vec<u8> {
 }
 
 /// Leaves out comments: a `%` not written as `\%` ends the line's text.
-fn uncomment(src: &str) -> String {
+pub(crate) fn uncomment(src: &str) -> String {
     src.lines()
         .map(|l| {
             let b = l.as_bytes();
@@ -164,7 +180,7 @@ fn uncomment(src: &str) -> String {
 }
 
 /// The text inside a balanced pair starting at `open` (`[` or `{`), and where it ends.
-fn balanced(s: &str, open: usize) -> Option<(&str, usize)> {
+pub(crate) fn balanced(s: &str, open: usize) -> Option<(&str, usize)> {
     let (o, c) = match s.as_bytes()[open] {
         b'[' => (b'[', b']'),
         _ => (b'{', b'}'),
@@ -361,6 +377,8 @@ pub fn prepare(root: &Path) -> Report {
         return report;
     }
     let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
+    // The package beside the presentation too, so other LaTeX editors find it.
+    place_beside(&dir, "texoravideo.sty", STY);
     let out_dir = dir.join(FOLDER);
     if std::fs::create_dir_all(&out_dir).is_err() {
         return report;
@@ -560,6 +578,19 @@ mod tests {
     /// Uses GIFs only, which TeXora decodes itself, so it gives the same result on every computer,
     /// with or without ffmpeg or VLC (the test machines on GitHub have neither).
     #[test]
+    fn a_package_beside_the_presentation_is_kept_up_to_date_but_never_someone_elses() {
+        let d = std::env::temp_dir().join(format!("texora-place-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("texoravideo.sty");
+        std::fs::write(&p, "%% texoravideo.sty -- an older TeXora copy\n").unwrap();
+        place_beside(&d, "texoravideo.sty", STY);
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), STY, "TeXora's own older copy is updated");
+        std::fs::write(&p, "% my own texoravideo\n").unwrap();
+        place_beside(&d, "texoravideo.sty", STY);
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), "% my own texoravideo\n", "someone else's file is kept");
+    }
+
+    #[test]
     fn posters_are_made_once_and_problems_reported() {
         let dir = std::env::temp_dir().join(format!("texora-prep-{}", std::process::id()));
         std::fs::create_dir_all(dir.join("media")).unwrap();
@@ -573,6 +604,8 @@ mod tests {
         let tex = dir.join("deck.tex");
         std::fs::write(&tex, "\\includevideo[][posterat=30]{wave.gif}\n\\includevideo[][posterat=50]{wave.gif}\n\\includevideo{media/clip é.gif}\n\\includevideo{does-not-exist.mp4}\n\\includevideo{test.txt}\n\\includevideo{../escape.mp4}\n\\includevideo{media/clip é.gif}\n\\includevideo{wave.gif}\n").unwrap();
         let r = prepare(&tex);
+        // The package is put beside the presentation, so other LaTeX editors find it.
+        assert_eq!(std::fs::read_to_string(dir.join("texoravideo.sty")).unwrap(), STY);
         assert_eq!((r.made, r.reused), (2, 0), "one poster per video: {r:?}");
         let lines: Vec<usize> = r.problems.iter().map(|p| p.1).collect();
         assert_eq!(lines, vec![2, 4, 5, 6], "{:?}", r.problems);

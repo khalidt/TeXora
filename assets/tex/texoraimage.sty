@@ -1,0 +1,81 @@
+%% texoraimage.sty -- pictures LaTeX cannot read (AVIF, WebP, HEIC/HEIF, JPEG XL), made ready by TeXora.
+%%
+%%   \usepackage{texoraimage}
+%%   \includeimage[<graphics options>]{<file>}
+%%
+%% <graphics options> go to \includegraphics as they are (width=..., height=..., scale=..., angle=...).
+%% <file> is read exactly as written, from the presentation's folder: {photo.heic} is beside the .tex
+%% file, {images/photo.avif} is in its images folder.
+%%
+%% pdfLaTeX, XeLaTeX and LuaLaTeX cannot read .avif, .webp, .heic, .heif or .jxl pictures. Before LaTeX
+%% runs, TeXora converts each one to an ordinary JPEG (or PNG when it has transparency) in the folder
+%% texora-images/, named by the MD5 of the path as written, and this package includes that copy.
+%% PNG, JPEG, PDF and EPS pictures go straight to \includegraphics, so \includeimage works for any
+%% picture.
+%%
+%% In another LaTeX editor: keep this file and the texora-images folder beside the .tex file (TeXora
+%% puts this file there for you), and the document compiles with every picture. A picture that has not
+%% been converted yet shows as a framed box with its name and a warning, never an error.
+%%
+%% This file was written by TeXora; it is safe to share it with the document.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{texoraimage}[2026/11/11 v1.0 Modern picture formats, converted by TeXora]
+\RequirePackage{graphicx}
+\RequirePackage{xkeyval}
+\RequirePackage{pdftexcmds}
+\RequirePackage{iftex}
+
+\def\ti@dir{texora-images}
+
+% The MD5 of the path's characters as UTF-8, in capitals, the same in every engine (as texoravideo).
+\ifluatex
+  \def\ti@mdfive#1{\directlua{tex.sprint(string.upper(md5.sumhexa("\luaescapestring{\detokenize{#1}}")))}}
+\else
+  \def\ti@mdfive#1{\pdf@mdfivesum{\detokenize{#1}}}
+\fi
+
+% Width and height for the placeholder box, read from the graphics options; others are left alone.
+\define@key{texoraimage@size}{width}{\def\ti@w{#1}}
+\define@key{texoraimage@size}{height}{\def\ti@h{#1}}
+
+% A framed box in place of a picture that is not ready, with its name.
+\newcommand\ti@placeholder[2]{%
+  \def\ti@w{}\def\ti@h{}%
+  \setkeys*{texoraimage@size}{#1}%
+  % The box's width and height, worked out before the box is drawn: as given, the missing one from
+  % the other (3:2), or half the line wide.
+  \ifx\ti@w\@empty
+    \ifx\ti@h\@empty \dimen@=0.5\linewidth \dimen@ii=0.5625\dimen@
+    \else \dimen@ii=\ti@h\relax \dimen@=1.5\dimen@ii \fi
+  \else
+    \dimen@=\ti@w\relax
+    \ifx\ti@h\@empty \dimen@ii=0.6667\dimen@ \else \dimen@ii=\ti@h\relax \fi
+  \fi
+  \advance\dimen@ by -2\fboxsep \advance\dimen@ by -2\fboxrule
+  \advance\dimen@ii by -2\fboxsep \advance\dimen@ii by -2\fboxrule
+  \PackageWarning{texoraimage}{Picture `#2' is not converted yet. Open the presentation in TeXora
+    once, or keep its texora-images folder with it}%
+  \fbox{\parbox[c][\dimen@ii][c]{\dimen@}%
+    {\centering\footnotesize\ttfamily #2\par\smallskip\normalfont\scriptsize
+     open in TeXora to show this picture\par}}%
+}
+
+\NewDocumentCommand\includeimage{O{} m}{%
+  \begingroup
+  % The path exactly as written, from the presentation's folder.
+  \def\ti@rel{#2}%
+  \edef\ti@relstr{\expandafter\detokenize\expandafter{\ti@rel}}%
+  \edef\ti@hash{\expandafter\ti@mdfive\expandafter{\ti@rel}}%
+  % TeXora's copy if there is one; else the file itself when LaTeX reads it; else the placeholder.
+  \IfFileExists{\ti@dir/\ti@hash.jpg}{\includegraphics[#1]{\ti@dir/\ti@hash.jpg}}{%
+    \IfFileExists{\ti@dir/\ti@hash.png}{\includegraphics[#1]{\ti@dir/\ti@hash.png}}{%
+      \filename@parse{\ti@relstr}%
+      \@ifundefined{ti@native@\filename@ext}{\ti@placeholder{#1}{\ti@relstr}}{%
+        \IfFileExists{\ti@relstr}{\includegraphics[#1]{#2}}{\ti@placeholder{#1}{\ti@relstr}}}}}%
+  \endgroup
+}
+
+% Extensions LaTeX reads itself, in either case.
+\@for\ti@e:={png,PNG,jpg,JPG,jpeg,JPEG,pdf,PDF,eps,EPS}\do{\expandafter\def\csname ti@native@\ti@e\endcsname{}}
+
+\endinput

@@ -18,28 +18,37 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | Inter font (Rasmus Andersson) | SIL Open Font License 1.1 | https://rsms.me/inter/ |
 | Hack and Ubuntu Light fonts (inside egui) | MIT; Ubuntu Font Licence | https://github.com/emilk/egui |
 
-## Rust libraries built into the program (391)
+## Rust libraries built into the program (428)
 
 | Library | Version | Licence | Source |
 |---|---|---|---|
 | accesskit | 0.25.2 | MIT OR Apache-2.0 | https://github.com/AccessKit/accesskit |
 | adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | https://github.com/oyvindln/adler2 |
 | ahash | 0.8.12 | MIT OR Apache-2.0 | https://github.com/tkaitchuck/ahash |
+| alloc-no-stdlib | 2.0.4 | BSD-3-Clause | https://github.com/dropbox/rust-alloc-no-stdlib |
+| alloc-stdlib | 0.2.4 | BSD-3-Clause | https://github.com/dropbox/rust-alloc-no-stdlib |
 | android-activity | 0.6.1 | MIT OR Apache-2.0 | https://github.com/rust-mobile/android-activity |
 | android-properties | 0.2.2 | MIT | https://github.com/miklelappo/android-properties |
 | android_system_properties | 0.1.6 | MIT OR Apache-2.0 | https://github.com/nical/android_system_properties |
 | arboard | 3.7.0 | MIT OR Apache-2.0 | https://github.com/1Password/arboard |
 | arrayvec | 0.7.8 | MIT OR Apache-2.0 | https://github.com/bluss/arrayvec |
 | as-raw-xcb-connection | 1.0.1 | MIT OR Apache-2.0 | https://github.com/psychon/as-raw-xcb-connection |
+| assert_matches | 1.5.0 | MIT/Apache-2.0 | https://github.com/murarth/assert_matches |
 | atomic-waker | 1.1.2 | Apache-2.0 OR MIT | https://github.com/smol-rs/atomic-waker |
+| atomig | 0.4.3 | MIT/Apache-2.0 | https://github.com/LukasKalbertodt/atomig/ |
+| atomig-macro | 0.4.0 | MIT/Apache-2.0 | https://github.com/LukasKalbertodt/atomig/ |
+| avif-decode | 3.0.0 | BSD-3-Clause | https://github.com/kornelski/avif-decode |
+| avif-parse | 2.1.0 | MPL-2.0 | https://github.com/kornelski/avif-parse |
 | base64 | 0.23.1 | MIT OR Apache-2.0 | https://github.com/marshallpierce/rust-base64 |
 | bit-set | 0.10.0 | Apache-2.0 OR MIT | https://github.com/contain-rs/bit-set |
 | bit-vec | 0.9.1 | Apache-2.0 OR MIT | https://github.com/contain-rs/bit-vec |
 | bitflags | 1.3.2 | MIT/Apache-2.0 | https://github.com/bitflags/bitflags |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 | https://github.com/bitflags/bitflags |
+| bitreader | 0.3.11 | MIT OR Apache-2.0 | https://github.com/irauta/bitreader |
 | block-buffer | 0.12.1 | MIT OR Apache-2.0 | https://github.com/RustCrypto/utils |
 | block2 | 0.5.1 | MIT | https://github.com/madsmtm/objc2 |
 | block2 | 0.6.2 | MIT | https://github.com/madsmtm/objc2 |
+| brotli-decompressor | 5.0.3 | BSD-3-Clause/MIT | https://github.com/dropbox/rust-brotli-decompressor |
 | bumpalo | 3.20.3 | MIT OR Apache-2.0 | https://github.com/fitzgen/bumpalo |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT | https://github.com/Lokathor/bytemuck |
 | bytemuck_derive | 1.12.1 | Zlib OR Apache-2.0 OR MIT | https://github.com/Lokathor/bytemuck |
@@ -100,6 +109,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | errno | 0.3.14 | MIT OR Apache-2.0 | https://github.com/lambda-fairy/rust-errno |
 | error-code | 3.4.0 | BSL-1.0 | https://github.com/DoumanAsh/error-code |
 | euclid | 0.22.14 | MIT OR Apache-2.0 | https://github.com/servo/euclid |
+| fallible_collections | 0.5.2 | MIT OR Apache-2.0 | https://github.com/vcombey/fallible_collections.git |
 | fax | 0.2.7 | MIT | https://github.com/pdf-rs/fax |
 | fdeflate | 0.3.7 | MIT OR Apache-2.0 | https://github.com/image-rs/fdeflate |
 | fearless_simd | 0.4.1 | Apache-2.0 OR MIT | https://github.com/linebender/fearless_simd |
@@ -132,6 +142,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | harfrust | 0.12.0 | MIT | https://github.com/harfbuzz/harfrust |
 | hashbrown | 0.15.5 | MIT OR Apache-2.0 | https://github.com/rust-lang/hashbrown |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | https://github.com/rust-lang/hashbrown |
+| heck | 0.5.0 | MIT OR Apache-2.0 | https://github.com/withoutboats/heck |
 | hermit-abi | 0.5.3 | MIT OR Apache-2.0 | https://github.com/hermit-os/hermit-rs |
 | http | 1.5.0 | MIT OR Apache-2.0 | https://github.com/hyperium/http |
 | httparse | 1.10.1 | MIT OR Apache-2.0 | https://github.com/seanmonstar/httparse |
@@ -148,6 +159,8 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | idna | 1.1.0 | MIT OR Apache-2.0 | https://github.com/servo/rust-url/ |
 | idna_adapter | 1.2.2 | Apache-2.0 OR MIT | https://github.com/hsivonen/idna_adapter |
 | image | 0.25.10 | MIT OR Apache-2.0 | https://github.com/image-rs/image |
+| image-webp | 0.2.4 | MIT OR Apache-2.0 | https://github.com/image-rs/image-webp |
+| imgref | 1.12.3 | CC0-1.0 OR Apache-2.0 | https://github.com/kornelski/imgref |
 | indexmap | 2.14.2 | Apache-2.0 OR MIT | https://github.com/indexmap-rs/indexmap |
 | itertools | 0.15.0 | MIT OR Apache-2.0 | https://github.com/rust-itertools/itertools |
 | itoa | 1.0.18 | MIT OR Apache-2.0 | https://github.com/dtolnay/itoa |
@@ -157,7 +170,21 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | jni-sys | 0.4.1 | MIT OR Apache-2.0 | https://github.com/jni-rs/jni-sys |
 | jni-sys-macros | 0.4.1 | MIT OR Apache-2.0 | https://github.com/jni-rs/jni-sys |
 | js-sys | 0.3.107 | MIT OR Apache-2.0 | https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/js-sys |
+| jxl-bitstream | 1.1.0 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-coding | 1.0.1 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-color | 0.11.0 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-frame | 0.13.3 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-grid | 0.6.2 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-image | 0.13.0 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-jbr | 0.2.1 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-modular | 0.11.3 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-oxide | 0.12.6 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-oxide-common | 1.0.0 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-render | 0.12.4 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-threadpool | 1.0.0 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
+| jxl-vardct | 0.11.1 | MIT OR Apache-2.0 | https://github.com/tirr-c/jxl-oxide.git |
 | kurbo | 0.13.1 | Apache-2.0 OR MIT | https://github.com/linebender/kurbo |
+| leb128 | 0.2.7 | MIT OR Apache-2.0 | https://github.com/gimli-rs/leb128 |
 | libc | 0.2.191 | MIT OR Apache-2.0 | https://github.com/rust-lang/libc |
 | libloading | 0.8.9 | ISC | https://github.com/nagisa/rust_libloading/ |
 | libloading | 0.9.0 | ISC | https://github.com/nagisa/rust_libloading/ |
@@ -226,6 +253,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | https://github.com/Amanieu/parking_lot |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | https://github.com/Amanieu/parking_lot |
 | parlance | 0.1.1 | Apache-2.0 OR MIT | https://github.com/linebender/parley |
+| paste | 1.0.15 | MIT OR Apache-2.0 | https://github.com/dtolnay/paste |
 | pdfium-render | 0.9.5 | MIT OR Apache-2.0 | https://github.com/ajrcarey/pdfium-render |
 | peniko | 0.6.1 | Apache-2.0 OR MIT | https://github.com/linebender/peniko |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 | https://github.com/servo/rust-url/ |
@@ -252,6 +280,8 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | quick-xml | 0.41.0 | MIT | https://github.com/tafia/quick-xml |
 | quote | 1.0.47 | MIT OR Apache-2.0 | https://github.com/dtolnay/quote |
 | r-efi | 5.3.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | https://github.com/r-efi/r-efi |
+| rav1d | 1.1.0 | BSD-2-Clause | https://github.com/memorysafety/rav1d |
+| raw-cpuid | 11.6.0 | MIT | https://github.com/gz/rust-cpuid |
 | raw-window-handle | 0.6.2 | MIT OR Apache-2.0 OR Zlib | https://github.com/rust-windowing/raw-window-handle |
 | read-fonts | 0.41.0 | MIT OR Apache-2.0 | https://github.com/googlefonts/fontations |
 | redox_syscall | 0.4.1 | MIT | https://gitlab.redox-os.org/redox-os/syscall |
@@ -260,6 +290,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | redox_users | 0.5.3 | MIT | https://gitlab.redox-os.org/redox-os/users |
 | renderdoc-sys | 1.1.0 | MIT OR Apache-2.0 | https://github.com/ebkalderon/renderdoc-rs |
 | rfd | 0.17.2 | MIT | https://github.com/PolyMeilex/rfd |
+| rgb | 0.8.53 | MIT | https://github.com/kornelski/rust-rgb |
 | ring | 0.17.14 | Apache-2.0 AND ISC | https://github.com/briansmith/ring |
 | roxmltree | 0.21.2 | MIT OR Apache-2.0 | https://github.com/RazrFalcon/roxmltree |
 | rustc-hash | 1.1.0 | Apache-2.0/MIT | https://github.com/rust-lang-nursery/rustc-hash |
@@ -291,6 +322,8 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | smol_str | 0.2.2 | MIT OR Apache-2.0 | https://github.com/rust-analyzer/smol_str |
 | stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | https://github.com/storyyeller/stable_deref_trait |
 | static_assertions | 1.1.0 | MIT OR Apache-2.0 | https://github.com/nvzqz/static-assertions-rs |
+| strum | 0.26.3 | MIT | https://github.com/Peternator7/strum |
+| strum_macros | 0.26.4 | MIT | https://github.com/Peternator7/strum |
 | subtle | 2.6.1 | BSD-3-Clause | https://github.com/dalek-cryptography/subtle |
 | syn | 2.0.119 | MIT OR Apache-2.0 | https://github.com/dtolnay/syn |
 | syn | 3.0.9 | MIT OR Apache-2.0 | https://github.com/dtolnay/syn |
@@ -305,6 +338,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | time-core | 0.1.9 | MIT OR Apache-2.0 | https://github.com/time-rs/time |
 | time-macros | 0.2.32 | MIT OR Apache-2.0 | https://github.com/time-rs/time |
 | tinystr | 0.8.5 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
+| to_method | 1.1.0 | CC0-1.0 | https://github.com/whentze/to_method |
 | tokio | 1.54.1 | MIT | https://github.com/tokio-rs/tokio |
 | toml_datetime | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
 | toml_edit | 0.25.17+spec-1.1.0 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
@@ -401,7 +435,10 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | yeslogic-fontconfig-sys | 6.0.1 | MIT | https://github.com/yeslogic/fontconfig-rs |
 | yoke | 0.8.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | yoke-derive | 0.8.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
+| yuv | 0.8.20 | BSD-3-Clause OR Apache-2.0 | https://github.com/awxkee/yuvutils-rs |
+| zerocopy | 0.7.35 | BSD-2-Clause OR Apache-2.0 OR MIT | https://github.com/google/zerocopy |
 | zerocopy | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | https://github.com/google/zerocopy |
+| zerocopy-derive | 0.7.35 | BSD-2-Clause OR Apache-2.0 OR MIT | https://github.com/google/zerocopy |
 | zerocopy-derive | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | https://github.com/google/zerocopy |
 | zerofrom | 0.1.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zerofrom-derive | 0.1.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
