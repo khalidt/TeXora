@@ -67,8 +67,21 @@ fn main() {
         }
     }
     let lib = find_lib(&dir, name).unwrap();
-    // OUT_DIR = target/<profile>/build/texora-xxx/out
-    if let Some(profile_dir) = PathBuf::from(env::var("OUT_DIR").unwrap()).ancestors().nth(3) {
-        let _ = fs::copy(&lib, profile_dir.join(name));
+    // The program goes in the folder holding `build`: OUT_DIR is target/<profile>/build/texora-xxx/out
+    // up to Rust 1.99, and target/<profile>/build/texora/xxx/out from Rust 1.100. Counting folders up
+    // from OUT_DIR put the engine in the wrong place with 1.100, so the nearest `build` is looked for.
+    let out = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let Some(profile_dir) = out.ancestors().find(|p| p.file_name().is_some_and(|n| n == "build")).and_then(Path::parent) else {
+        panic!("cannot tell where the program goes from OUT_DIR {}; put {name} next to the program", out.display());
+    };
+    // A package without the engine cannot open any PDF, so a failed copy stops the build. The same
+    // file already there is left alone (Windows refuses to replace a DLL a running TeXora has open).
+    let dest = profile_dir.join(name);
+    let len = |p: &Path| fs::metadata(p).map(|m| m.len()).ok();
+    if len(&dest).is_some() && len(&dest) == len(&lib) {
+        return;
+    }
+    if let Err(e) = fs::copy(&lib, &dest) {
+        panic!("could not put {} next to the program in {}: {e}", lib.display(), profile_dir.display());
     }
 }
