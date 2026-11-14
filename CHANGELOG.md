@@ -2,6 +2,12 @@
 
 All notable changes to TeXora. The newest version is first. Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH, where MINOR adds features that keep existing documents working and PATCH only fixes.
 
+## 1.6.1
+
+### Fixed
+
+- **The 1.6.0 packages could not be made.** From Rust 1.100, Cargo keeps a build script's files one folder deeper, so the PDF engine (PDFium) was copied into `target/release/build/` instead of beside the program, and every package step stopped with "libpdfium: No such file". The build now finds the program's folder by name, works with Rust 1.99 and 1.100, and stops with a clear message if the engine cannot be put there. Nothing else changed from 1.6.0, which was tagged but never released.
+
 ## 1.6.0
 
 ### New
