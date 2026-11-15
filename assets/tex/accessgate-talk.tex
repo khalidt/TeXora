@@ -1,0 +1,90 @@
+% accessgate-talk.tex -- Beamer commands that the ltx-talk class does not have, for TeXora's tagged
+% copy of a Beamer presentation (<name>.acc.tex). Each one is defined only when ltx-talk lacks it.
+% Presenter-only things (notes, logos, section pages, theme colours) do nothing; text stays text.
+%
+% Part of TeXora, a LaTeX-native presenter for Beamer and PDF slides.
+% Author:    Khalid Alkhaldi
+% Copyright: 2026 Khalid Alkhaldi
+% License:   PolyForm Noncommercial 1.0.0
+%            https://polyformproject.org/licenses/noncommercial/1.0.0
+% SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+% Source:    https://github.com/khalidt/TeXora
+% Date:      2026/11/13
+\makeatletter
+\ProvideDocumentCommand\note{d<> o +m}{}
+\ProvideDocumentCommand\titlepage{}{\maketitle}
+\ProvideDocumentCommand\againframe{d<> o m}{}
+\ProvideDocumentCommand\logo{m}{}
+\ProvideDocumentCommand\titlegraphic{m}{}
+\ProvideDocumentCommand\AtBeginSection{o +m}{}
+\ProvideDocumentCommand\AtBeginSubsection{o +m}{}
+\ProvideDocumentCommand\AtBeginPart{+m}{}
+\ProvideDocumentCommand\usebeamercolor{s o m}{}
+\ProvideDocumentCommand\usebeamerfont{s m}{}
+\ProvideDocumentCommand\usebeamertemplate{s m}{}
+\ProvideDocumentCommand\structure{d<> m}{#2}
+\ProvideDocumentCommand\insertframenumber{}{\thepage}
+\ProvideDocumentCommand\inserttotalframenumber{}{}
+\ProvideDocumentCommand\inserttitle{}{\@title}
+\ProvideDocumentCommand\insertshorttitle{}{\@title}
+\ProvideDocumentCommand\insertauthor{}{\@author}
+\ProvideDocumentCommand\insertshortauthor{}{\@author}
+\ProvideDocumentCommand\insertdate{}{\@date}
+\ProvideDocumentCommand\insertsubtitle{}{\ifdefined\@subtitle\@subtitle\fi}
+\ProvideDocumentCommand\insertinstitute{}{\ifdefined\@institute\@institute\fi}
+\ProvideDocumentEnvironment{alertblock}{d<> m}{\begin{block}{#2}}{\end{block}}
+\ProvideDocumentEnvironment{exampleblock}{d<> m}{\begin{block}{#2}}{\end{block}}
+\ProvideDocumentEnvironment{beamercolorbox}{o m}{}{}
+% For theme files: Beamer's own option commands.
+\ProvideDocumentCommand\DeclareOptionBeamer{s m o +m}{}
+\ProvideDocumentCommand\ExecuteOptionsBeamer{m}{}
+\ProvideDocumentCommand\ProcessOptionsBeamer{}{}
+\ProvideDocumentEnvironment{thebibliography}{m}
+  {\begin{itemize}\RenewDocumentCommand\bibitem{o m}{\IfValueTF{##1}{\item[[##1]]}{\item}}}{\end{itemize}}
+% (An empty \item[] would break the tag structure.)
+% Before ltx-talk 0.6.12 (2026-11-12) its own contents page breaks the tag structure (its toc
+% tagging sockets), so there the contents are listed plainly: sections, and subsections
+% indented. [currentsection] etc. are ignored. From 0.6.12 its own contents page is used.
+\@ifclasslater{ltx-talk}{2026-11-12}{}{%
+\DeclareDocumentCommand\tableofcontents{o}{\begingroup
+  % Each entry is a plain paragraph: the kernel's TOCI around a paragraph is not allowed in PDF/UA-2.
+  \def\contentsline##1##2##3##4{\csname l@##1\endcsname{##2}{##3}}%
+  \def\numberline##1{##1\enspace}%
+  \def\l@section##1##2{\par\noindent\textbf{##1}\par}%
+  \def\l@subsection##1##2{\par\noindent\hspace*{2em}##1\par}%
+  \def\l@subsubsection##1##2{}%
+  \makeatletter\InputIfFileExists{\jobname.toc}{}{}\par
+  \if@filesw\@ifundefined{acc@tocopen}{\gdef\acc@tocopen{}%
+    \AddToHook{enddocument/afterlastpage}{\expandafter\newwrite\csname tf@toc\endcsname
+      \immediate\openout\csname tf@toc\endcsname\jobname.toc\relax}}{}\fi
+  \endgroup}}
+% \appendix (written \AccAppendix in the copy): before 0.6.12 ltx-talk's broke the tag structure
+% between frames, so there it does nothing.
+\@ifclasslater{ltx-talk}{2026-11-12}{\let\AccAppendix\appendix}{\let\AccAppendix\relax}
+% Frame options the copy uses: ltx-talk 0.6 knows label= (\againframe repeats the frame) and
+% auto-break (for allowframebreaks); before, both are accepted and do nothing, and \againframe
+% (above) repeats nothing.
+\ExplSyntaxOn
+\keys_if_exist:nnF { talk / frame } { label }
+  { \keys_define:nn { talk / frame } { label .code:n = { } } }
+\keys_if_exist:nnF { talk / frame } { auto-break }
+  { \keys_define:nn { talk / frame } { auto-break .code:n = { } } }
+\ExplSyntaxOff
+% Beamer defines these theorem environments; a presentation's own \newtheorem comes first.
+\RequirePackage{amsthm}
+\AddToHook{begindocument/before}{%
+  \@ifundefined{theorem}{\newtheorem{theorem}{Theorem}}{}%
+  \@ifundefined{corollary}{\newtheorem{corollary}{Corollary}}{}%
+  \@ifundefined{lemma}{\newtheorem{lemma}{Lemma}}{}%
+  \@ifundefined{fact}{\newtheorem{fact}{Fact}}{}%
+  \theoremstyle{definition}%
+  \@ifundefined{definition}{\newtheorem{definition}{Definition}}{}%
+  \@ifundefined{definitions}{\newtheorem{definitions}{Definitions}}{}%
+  \@ifundefined{example}{\newtheorem{example}{Example}}{}%
+  \@ifundefined{examples}{\newtheorem{examples}{Examples}}{}}
+% With LuaLaTeX ltx-talk uses unicode-math, which has amssymb's symbols (amssymb itself clashes);
+% two of them have other names there.
+\AddToHook{begindocument/end}{%
+  \@ifundefined{square}{\@ifundefined{mdlgwhtsquare}{}{\let\square\mdlgwhtsquare}}{}%
+  \@ifundefined{blacksquare}{\@ifundefined{mdlgblksquare}{}{\let\blacksquare\mdlgblksquare}}{}}
+\makeatother

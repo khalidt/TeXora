@@ -53,6 +53,7 @@ pub enum LeftTab {
     Bookmarks,
     Search,
     Analytics,
+    Accessibility,
     Settings,
     Docs,
 }
@@ -63,6 +64,8 @@ pub enum LogTab {
     Problems,
     Packages,
     Log,
+    /// The accessibility check and the accessible build.
+    Access,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -100,6 +103,8 @@ pub struct Source {
     pub synced_line: usize,
     pub line_changed: Instant,
     pub goto_line: Option<usize>,
+    /// With goto_line: the characters to select on that line, as (column from 1, length).
+    pub goto_select: Option<(usize, usize)>,
     /// First lines of the folded blocks in the studio's editor.
     pub folded: std::collections::BTreeSet<usize>,
     /// Environments that make a frame here: `frame`, and any a local class or theme defines around it.
@@ -279,6 +284,19 @@ pub struct App {
     pub req_warning: Option<String>,
     pub req_rx: Option<Receiver<(Vec<latex::Requirement>, Option<String>)>>,
     pub log_tab: LogTab,
+    /// What the accessibility check found in the source, refreshed after each compile.
+    pub access: Vec<crate::access::Finding>,
+    /// The last accessible build, and the one running.
+    pub access_build: Option<crate::access::Build>,
+    pub access_rx: Option<std::sync::mpsc::Receiver<crate::access::Build>>,
+    /// The tagged build shows every \AccMotion as its still picture.
+    pub access_still: bool,
+    /// The Accessibility checker sidebar.
+    pub access_panel: crate::ui_access::Panel,
+    /// The tagged copy of Beamer slides has one page per frame (ltx-talk handout).
+    pub access_handout: bool,
+    /// The source file `access` was worked out for, so a newly opened file is checked once.
+    pub access_for: Option<PathBuf>,
     pub log_wrap: bool,
     pub log_open: bool,
     pub compile_ok: Option<bool>,
@@ -461,6 +479,13 @@ impl App {
             req_warning: None,
             req_rx: None,
             log_tab: LogTab::Problems,
+            access: vec![],
+            access_build: None,
+            access_rx: None,
+            access_still: false,
+            access_panel: Default::default(),
+            access_handout: false,
+            access_for: None,
             log_wrap: true,
             log_open: true,
             compile_ok: None,
@@ -499,6 +524,7 @@ impl App {
         let wants_deck = args.file.is_some() || args.view.is_some() || args.goto.is_some();
         match args.view.as_deref() {
             Some("analytics") => app.left = Some(LeftTab::Analytics),
+            Some("accessibility") => app.left = Some(LeftTab::Accessibility),
             Some("settings") => app.left = Some(LeftTab::Settings),
             Some("outline") => app.left = Some(LeftTab::Bookmarks),
             Some("search") => {
@@ -614,6 +640,7 @@ impl App {
             synced_line: 0,
             line_changed: Instant::now(),
             goto_line: None,
+            goto_select: None,
             folded: Default::default(),
             frame_envs,
         })
@@ -865,6 +892,10 @@ impl App {
 
     fn on_compiled(&mut self, r: CompileResult) {
         self.compiling = false;
+        if let Some(s) = &self.src {
+            self.access = crate::access::check(&s.path);
+            self.access_for = Some(s.path.clone());
+        }
         self.problems = r.problems;
         self.full_log = r.log;
         self.compile_ok = Some(r.ok);
@@ -2054,7 +2085,7 @@ impl App {
     pub fn script_report(&self) -> String {
         let ink: usize = self.side.ink.values().map(Vec::len).sum();
         format!(
-            "slide={} frame={} step={} tool={:?} screen={:?} frozen={:?} zoom={} ink={} laser={} timer={} audience={} swap={} history={} view={:?} questions={} slides={} tabs={:?} active={} bookmarks={:?} asked={:?} about={} update={:?} notice={:?} saved={:?} layout={:?} level={:.2} elapsed={:.1} target={} left={:?} missing={} warn={} status={:?} note={:?} cli={} copied={:?} syscheck={} packages={} recent={} toast={} skipped={:?} draft={:?} line={} log_open={} wrap={} follow={} anims={:?} videos={:?} clip={:?} avsync={:?}",
+            "slide={} frame={} step={} tool={:?} screen={:?} frozen={:?} zoom={} ink={} laser={} timer={} audience={} swap={} history={} view={:?} questions={} slides={} tabs={:?} active={} bookmarks={:?} asked={:?} about={} update={:?} notice={:?} saved={:?} layout={:?} level={:.2} elapsed={:.1} target={} left={:?} missing={} warn={} status={:?} note={:?} cli={} copied={:?} syscheck={} packages={} recent={} toast={} skipped={:?} draft={:?} line={} log_open={} wrap={} follow={} anims={:?} videos={:?} clip={:?} avsync={:?} dirty={}",
             self.cur + 1,
             self.frame() + 1,
             self.deck.slides.get(self.cur).map(|s| s.step + 1).unwrap_or(0),
@@ -2122,6 +2153,7 @@ impl App {
                     (s.sync.frames > 0).then(|| (p.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(), s.sync.frames, s.sync.mean_ms().round(), s.sync.worst_ms.round()))
                 })
                 .collect::<Vec<_>>(),
+            self.src.as_ref().is_some_and(|s| s.dirty),
         )
     }
 

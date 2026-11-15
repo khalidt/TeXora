@@ -16,7 +16,8 @@ mkdir -p "$STAGE/$NAME/source" backup
 
 # Source: tracked files plus new files Git does not ignore.
 git ls-files -co --exclude-standard | while IFS= read -r f; do
-  [ -e "$f" ] || continue
+  # Files only: a nested Git folder (a worktree) is listed as one entry and is not part of the project.
+  [ -f "$f" ] || continue
   mkdir -p "$STAGE/$NAME/source/$(dirname "$f")"
   cp -p "$f" "$STAGE/$NAME/source/$f"
 done

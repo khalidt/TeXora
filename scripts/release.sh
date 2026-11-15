@@ -42,7 +42,7 @@ python3 scripts/make-deb.py linux-arm64
 echo "== No ffmpeg, VLC or codec library in any package"
 sh scripts/check-no-codecs.sh "$OUT"
 
-(cd "$OUT" && shasum -a 256 TeXora-*.zip TeXora-*.tar.gz TeXora-*.dmg texora_*.deb > SHA256SUMS.txt)
+(cd "$OUT" && shasum -a 256 TeXora-*.zip TeXora-*.tar.gz TeXora-*.dmg TeXora-*.deb > SHA256SUMS.txt)
 
 
 REPORT="$OUT/RELEASE-REPORT.txt"
@@ -61,7 +61,7 @@ REPORT="$OUT/RELEASE-REPORT.txt"
   done
   echo
   echo "Installers made here:"
-  (cd "$OUT" && ls TeXora-*.dmg texora_*.deb) | sed 's/^/  /'
+  (cd "$OUT" && ls TeXora-*.dmg TeXora-*.deb) | sed 's/^/  /'
   echo "  (Windows installer: made and tested by the GitHub workflow)"
 } > "$REPORT"
 cat "$REPORT"

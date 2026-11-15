@@ -1,0 +1,116 @@
+%% TeXora template: Tagged Article. Not slides: an article that LaTeX itself tags for screen readers
+%% (PDF/UA), with nothing from TeXora in it, so it compiles the same in any editor: TeXora, Overleaf,
+%% TeXstudio, TeXShop, VS Code with LaTeX Workshop, or the command line.
+%%
+%% What it needs:
+%%   - LaTeX from 2023 or later (TeX Live 2023+, MiKTeX, Overleaf). From LaTeX 2025-06 the first
+%%     \DocumentMetadata line is used (tagging=on, PDF/UA-2); before, the second (the test phase).
+%%   - The picture media/test-card.png, which comes with this template.
+%%   - LuaLaTeX gives the best tags (also MathML for the maths); pdfLaTeX tags too. In Overleaf:
+%%     Menu > Compiler > LuaLaTeX. With LuaLaTeX, LaTeX may also write <name>-luamml-mathml.html.
+%%
+%% To test it in another editor: open this file there, compile, then check the PDF with
+%% TeXora (Tools > Check accessibility), veraPDF or PAC, or the LaTeX project's show-pdf-tags.
+%% Change the colours on the \definecolor lines below.
+% !TEX program = lualatex
+\IfFormatAtLeastTF{2025-06-01}
+  {\DocumentMetadata{lang=en-US,pdfstandard=ua-2,tagging=on}}
+  {\DocumentMetadata{lang=en-US,pdfstandard=ua-1,testphase={phase-III}}}
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\definecolor{linkblue}{RGB}{0,110,200}
+\definecolor{rulegrey}{RGB}{90,90,90}
+\hypersetup{colorlinks,linkcolor=linkblue,urlcolor=linkblue,citecolor=linkblue,pdftitle={A Tagged Article},pdfauthor={Your Name}}
+
+\title{A Tagged Article}
+\author{Your Name\\ Your Institution}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  This article is a test and a guide in one. Each section uses one kind of content, the way that
+  keeps it readable with a screen reader: headings, lists, a described picture, a table with a
+  header row, maths, links, a footnote and references. Compile it in any LaTeX editor and check the
+  tags of the PDF.
+\end{abstract}
+
+\section{Headings and paragraphs}
+Sections become headings (H1, H2, \dots) in the tags, so a screen reader can list them and jump
+between them. Write \verb|\section|, \verb|\subsection| and \verb|\paragraph| rather than bold
+text in a larger size: those carry no structure.
+
+\subsection{Lists}
+Lists are tagged as lists, item by item:
+\begin{itemize}
+  \item a bulleted list, with \verb|itemize|;
+  \item a numbered one, with \verb|enumerate|:
+    \begin{enumerate}
+      \item first,
+      \item second;
+    \end{enumerate}
+  \item and terms with their meaning, with \verb|description|.
+\end{itemize}
+
+\section{A described picture}
+Figure~\ref{fig:card} has alt text, given with the \texttt{alt} key of \texttt{\textbackslash includegraphics}.
+Its caption is read as well, so the alt text says what the picture shows and the caption what it
+means.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.45\textwidth,alt={A television test card: eight vertical colour bars, a rainbow strip and a frame counter}]{media/test-card.png}
+  \caption{A test card, used to check that colours come through.}
+  \label{fig:card}
+\end{figure}
+
+A picture that is only decoration takes \texttt{artifact} instead: \texttt{\textbackslash includegraphics[artifact]\{...\}}.
+
+\section{A table with a header row}
+Table~\ref{tab:engines} has one header row. With tagging on, LaTeX marks the first row as headers
+when it is told so; the rule under it shows the same to the eye.
+\IfFormatAtLeastTF{2025-06-01}{\tagpdfsetup{table/header-rows={1}}}{}
+
+\begin{table}[htbp]
+  \centering
+  \caption{How each engine tags a document.}
+  \label{tab:engines}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Engine & Tags & Maths \\
+    \midrule
+    LuaLaTeX & complete & as MathML too \\
+    pdfLaTeX & complete & as text \\
+    XeLaTeX & incomplete & as text \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Maths}
+Inline maths such as $a^2 + b^2 = c^2$ and displayed equations are tagged as formulas:
+\begin{equation}
+  \int_0^1 x^n \, dx = \frac{1}{n+1}, \qquad n \ge 0.
+\end{equation}
+With LuaLaTeX the PDF also holds each formula as MathML, which screen readers can speak.
+
+\section{Links, notes and references}
+Link text should say where it goes: the
+\href{https://www.w3.org/WAI/WCAG22/quickref/}{WCAG 2.2 quick reference}, not ``click
+here''.\footnote{Footnotes are tagged as notes and linked to where they are called.}
+References are tagged too~\cite{latex-tagging}.
+
+\begin{thebibliography}{9}
+  \bibitem{latex-tagging} The \LaTeX{} Project, \emph{Tagging status of LaTeX packages and
+  classes}, \url{https://latex3.github.io/tagging-project/tagging-status/}.
+\end{thebibliography}
+
+\end{document}

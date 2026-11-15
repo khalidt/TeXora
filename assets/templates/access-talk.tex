@@ -1,0 +1,84 @@
+%% TeXora template: Tagged Slides. Slides that LaTeX tags directly, made with ltx-talk, the LaTeX
+%% project's tagging-ready slide class, instead of Beamer. They compile in any editor with TeX Live
+%% 2026: TeXora, TeXstudio, TeXShop, VS Code. Works with ltx-talk 0.4.6 (as TeX Live 2026 ships it)
+%% and 0.6.12, which needs LaTeX 2026-06-01: update both with tlmgr update --self --all, not
+%% ltx-talk alone. Built with LuaLaTeX, the PDF validates as PDF/UA-2.
+%%
+%% How it differs from Beamer:
+%%   - \DocumentMetadata{...tagging=on} comes first, and the whole PDF is tagged, every slide.
+%%   - Frames take their title with \frametitle{...}; overlays (\pause, \only<2>, \item<2->) work
+%%     as in Beamer. Verbatim text goes in frame* instead of [fragile].
+%%   - No themes and no \note: TeXora shows the slides and keeps notes in its own notes file.
+%%   - ltx-talk is new and still changing. For a Beamer deck, TeXora's Build tagged copy makes an
+%%     ltx-talk copy by itself.
+%% Change the colours on the \definecolor lines below.
+% !TEX program = lualatex
+\DocumentMetadata{lang=en-US,pdfstandard=ua-2,tagging=on}
+\documentclass{ltx-talk}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\definecolor{ocean}{RGB}{12,74,110}
+\definecolor{coral}{RGB}{190,60,40}
+\hypersetup{pdftitle={Tagged Slides}}
+
+\title{Tagged Slides}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \maketitle
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why ltx-talk}
+  \begin{itemize}
+    \item<1-> Beamer refuses LaTeX's tagging: \texttt{\textbackslash DocumentMetadata} stops it.
+    \item<2-> ltx-talk tags every slide: titles as headings, lists, pictures, maths.
+    \item<3-> Overlays work as in Beamer: this point is the third step.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A described picture}
+  \begin{columns}
+    \begin{column}{0.45\textwidth}
+      \includegraphics[width=\linewidth,alt={A television test card: eight vertical colour bars, a rainbow strip and a frame counter}]{media/test-card.png}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \texttt{alt=\{...\}} on \texttt{\textbackslash includegraphics} becomes the picture's
+      alternate text in the tags.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Maths and blocks}
+  \begin{block}{A formula}
+    \[ e^{i\pi} + 1 = 0 \]
+    With LuaLaTeX the tags also hold it as MathML.
+  \end{block}
+  \textcolor{coral}{Colour} is never the only signal: the block's title says it too.
+\end{frame}
+
+\begin{frame*}
+  \frametitle{Code in frame*}
+\begin{verbatim}
+for slide in talk:
+    print(slide.title)   # 100% verbatim: \ { } % #
+\end{verbatim}
+  A frame with verbatim text is \texttt{frame*}; its text starts on the line after
+  \texttt{\textbackslash begin\{frame*\}}.
+\end{frame*}
+
+\begin{frame}
+  \frametitle{Check the tags}
+  \begin{enumerate}
+    \item In TeXora: the \textbf{Tools} menu, \textbf{Check accessibility}.
+    \item Anywhere: \texttt{show-pdf-tags talk.pdf} prints the tag tree.
+    \item For PDF/UA: veraPDF or PAC.
+  \end{enumerate}
+\end{frame}
+
+\end{document}

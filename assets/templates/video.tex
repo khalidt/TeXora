@@ -29,7 +29,7 @@
 \usepackage{lmodern}
 \usepackage{booktabs}
 \usepackage{texoravideo}
-\hypersetup{hidelinks}
+\hypersetup{hidelinks,pdflang=en-US}
 \definecolor{navy}{RGB}{22,50,92}
 \definecolor{gold}{RGB}{233,180,76}
 \definecolor{mist}{RGB}{238,242,248}
@@ -107,7 +107,7 @@
 \begin{frame}[fragile]{A video}
   \begin{columns}[c]
     \begin{column}{0.55\textwidth}
-      \includevideo[width=\linewidth][posterat=30]{media/sample-video.mp4}
+      \includevideo[width=\linewidth][posterat=30,alt={Play video: a light beam turning, 6 seconds},caption={A light beam turns once.}]{media/sample-video.mp4}
     \end{column}
     \begin{column}{0.42\textwidth}
 \begin{semiverbatim}\footnotesize
@@ -129,7 +129,7 @@
   \begin{columns}[c]
     \begin{column}{0.55\textwidth}
       \centering
-      \includevideo[height=4.2cm][loop,autoplay]{media/sample-loop.gif}
+      \includevideo[height=4.2cm][loop,autoplay,alt={Looping animation: dots drifting},caption={Dots drift across the picture.}]{media/sample-loop.gif}
     \end{column}
     \begin{column}{0.42\textwidth}
 \begin{semiverbatim}\footnotesize
@@ -149,12 +149,12 @@
 \begin{frame}{Both at once}
   \begin{columns}[c]
     \begin{column}{0.48\textwidth}
-      \includevideo[width=\linewidth]{media/sample-video.mp4}
+      \includevideo[width=\linewidth][alt={Play video: a light beam turning, 6 seconds},caption={A light beam turns once.}]{media/sample-video.mp4}
       \par\smallskip\centering\small A video: click to play
     \end{column}
     \begin{column}{0.48\textwidth}
       \centering
-      \includevideo[width=0.85\linewidth][loop,autoplay]{media/sample-loop.gif}
+      \includevideo[width=0.85\linewidth][loop,autoplay,alt={Looping animation: dots drifting},caption={Dots drift across the picture.}]{media/sample-loop.gif}
       \par\smallskip\small A GIF that starts by itself
     \end{column}
   \end{columns}
@@ -225,7 +225,7 @@
 \begin{frame}{Overlays keep playing}
   \begin{columns}[c]
     \begin{column}{0.5\textwidth}
-      \includevideo[width=\linewidth]{media/sample-video.mp4}
+      \includevideo[width=\linewidth][alt={Play video: a light beam turning, 6 seconds},caption={A light beam turns once.}]{media/sample-video.mp4}
     \end{column}
     \begin{column}{0.46\textwidth}
       \begin{itemize}
@@ -256,6 +256,20 @@
   \small Names may have spaces and accents, but not \code{\%} or \code{\#}.
   Web addresses, absolute paths and \code{..} are not played.
 \end{frame}
+
+\begin{frame}{For screen readers}
+  \small
+  \begin{tabular}{@{}ll@{}}
+    \code{alt=\{...\}} & what the video is and does: \emph{Play video: ..., 40 s}\\
+    \code{caption=\{...\}} & a short line shown under the video\\
+    \code{transcript=\{...\}} & the full text; it is printed where \code{\textbackslash AccTranscripts} is\\
+    \code{transcriptfile=...} & a transcript in its own file (.txt, .vtt, .pdf)\\
+  \end{tabular}
+  \par\medskip
+  Every clip here has \code{alt} and \code{caption}. \textbf{Tools > Check accessibility} lists what is
+  missing, and \textbf{Build tagged copy} makes a tagged copy for screen readers.
+\end{frame}
+\note{Alt text and a caption or transcript make each clip usable for people who cannot see or hear it.}
 
 \begin{frame}{Your turn}
   \begin{enumerate}

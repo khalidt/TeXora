@@ -117,7 +117,9 @@ Description: Present PDF and LaTeX Beamer slides
 """.encode()
     control_tgz = targz(lambda tar: add(tar, "./control", control))
 
-    deb = OUT / f"texora_{VERSION}_{ARCH}.deb"
+    # Named like the other downloads (TeXora-1.7.0-linux-x64.deb); the package inside is still "texora",
+    # as Debian package names are lowercase, so `apt remove texora` removes it.
+    deb = OUT / f"{PKG}.deb"
     deb.write_bytes(b"!<arch>\n" + ar_member("debian-binary", b"2.0\n") + ar_member("control.tar.gz", control_tgz) + ar_member("data.tar.gz", data_tgz))
     print(f"Installer: {deb.name} ({deb.stat().st_size // 1024} KB)")
     with open(OUT / f"{PKG}.validation.txt", "a") as log:

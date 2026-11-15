@@ -21,7 +21,7 @@
 
 
 <p align="center">
-  <img src="screenshots/tour.gif" alt="A tour of TeXora: Home, presenter view, large slide, LaTeX studio with folding, analytics, contents, settings, drawing on a slide and the audience window" width="400">
+  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.7: Home, the template picker with accessible slides and tagged documents, presenter view with the timer, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="400">
   <img src="screenshots/media-demo.gif" alt="An MP4 video and an animated GIF playing inside a slide, then two animations made with the LaTeX animate package" width="400">
 </p>
 
@@ -55,15 +55,15 @@ Each system has an installer and a portable package in the [latest release](http
 | macOS, Apple silicon (M1 and later)    | `TeXora-<version>-mac-arm64.dmg`         | `…-mac-arm64.zip`                     |
 | macOS, Intel                           | `TeXora-<version>-mac-x64.dmg`           | `…-mac-x64.zip`                       |
 | Windows 10 and 11 (x64)                | `TeXora-<version>-windows-x64-setup.exe` | `…-windows-x64.zip`                   |
-| Debian, Ubuntu and derivatives (x64)   | `texora_<version>_amd64.deb`             | `TeXora-<version>-linux-x64.tar.gz`   |
-| Debian, Ubuntu and derivatives (arm64) | `texora_<version>_arm64.deb`             | `TeXora-<version>-linux-arm64.tar.gz` |
+| Debian, Ubuntu and derivatives (x64)   | `TeXora-<version>-linux-x64.deb`         | `…-linux-x64.tar.gz`                  |
+| Debian, Ubuntu and derivatives (arm64) | `TeXora-<version>-linux-arm64.deb`       | `…-linux-arm64.tar.gz`                |
 
 - **macOS**: open the `.dmg` and drag **TeXora** to **Applications**. macOS asks for confirmation the
   first time; see [First launch on macOS](#first-launch-on-macos).
 - **Windows**: run the setup program. It installs per user without administrator rights (or for all
   users), adds Start menu and "Open with" entries for PDF and `.tex` files, and can be removed from
   *Installed apps*. Windows may warn about an unknown publisher.
-- **Linux**: `sudo apt install ./texora_<version>_amd64.deb`, then start **TeXora** from the menu or
+- **Linux**: `sudo apt install ./TeXora-<version>-linux-x64.deb`, then start **TeXora** from the menu or
   run `texora`. The `.tar.gz` runs from any folder with `./TeXora`. Requires glibc 2.31 or newer
   (Ubuntu 20.04, Debian 11 or later) and an X11 or Wayland desktop.
 
@@ -125,7 +125,8 @@ name and shortcut on hover.
 <summary><b>Templates</b> for new LaTeX presentations</summary>
 <br>
 
-Each template is a complete Beamer file with speaker notes.
+Each template is a complete file, ready to edit: Beamer slides with speaker notes, accessible slides,
+and tagged documents to test in any LaTeX editor.
 
 | Template                                                    | Contents                                                                                   |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -134,9 +135,17 @@ Each template is a complete Beamer file with speaker notes.
 | Flipbook                                                    | The frames of a GIF and charts that grow                                                   |
 | Media Studio                                                | A video clip and charts that draw themselves                                               |
 | Video Guide                                                 | `\includevideo` explained slide by slide, with a video and a GIF playing inside the slides |
+| Accessible Lecture                                          | High contrast; alt text, decoration, described drawings, tables, links, maths, language     |
+| Accessible Media                                            | A video and a GIF with alt text, a caption, a transcript in the slides and one in a file    |
+| Accessible Motion                                           | Described animations with pause buttons, click-by-click steps, a one-line still version     |
+| Tagged Slides                                               | Slides tagged directly by LaTeX with the `ltx-talk` class (TeX Live 2026)                   |
+| Tagged Article (not slides)                                 | An article LaTeX tags for screen readers, with nothing from TeXora: any editor               |
+| Media Handout (not slides)                                  | A tagged handout with a video, a GIF, a picture and an animation, packages beside it         |
 
-Flipbook, Media Studio and Video Guide save their pictures and clips in a `media` folder beside the
-new file.
+The templates with pictures and clips save them in a `media` folder beside the new file. The
+accessible ones follow their own advice: **Tools > Check accessibility** finds nothing to fix in them.
+Media Handout also gets `texoravideo.sty`, `texoraimage.sty` and `accessgate.sty` beside it, so the
+folder compiles in Overleaf, TeXstudio or VS Code as it is.
 
 </details>
 
@@ -390,20 +399,82 @@ ls frames | wc -l                      # number of frames
 
 </details>
 
+### Accessibility
+
+The full guide, with every kind of content and what it becomes in the tagged PDF:
+[Accessible.md](Accessible.md).
+Step-by-step recipes for adding tags and making an accessible PDF: [how-to.md](how-to.md).
+
+TeXora helps make presentations usable with screen readers, in three layers that each work alone, in
+any editor and engine: a **registry** of what each command needs (data), the **`accessgate`** LaTeX
+package (adds tags only where tagging is on), and **checking**.
+
+```latex
+\includegraphics[width=4cm,alt={Bar chart: sales doubled from 2024 to 2026}]{chart.pdf}
+\includeimage[width=3cm,alt={Team photo, five people}]{team.heic}
+\includevideo[width=6cm][alt={Play video: sorting demo, 40 s},caption={The list is sorted in three passes.}]{sort.mp4}
+\AccFigure{Bars growing from zero}{\animategraphics[autoplay]{10}{bars-}{1}{20}}
+```
+
+- **The WCAG checker** (the accessibility button beside Search, Analytics and Settings) checks the open PDF,
+  any PDF, and its source against WCAG 2.2 and PDF/UA: what fails, what to check by hand, what passes,
+  with the page or line of each issue; for Beamer slides it checks the tagged copy too, and runs veraPDF
+  when installed.
+- **Tools > Check accessibility** lists what is missing (alt text, captions or transcripts, pause for
+  looping media, link text, slide titles, table headers, colour contrast, link colour, language,
+  title), with the line and WCAG 2.2 criterion. `TeXora --check-accessibility talk.tex [--strict]` prints the same for any editor or CI.
+- **Build tagged copy** makes `talk.acc.pdf`, a tagged copy (LuaLaTeX, PDF/UA metadata, the
+  document's language), through a wrapper file, so `talk.tex` and `talk.pdf` are not changed; then it
+  checks the copy's tags and alt text. It is tagged, not validated: validate it with veraPDF
+  (PDF/UA-2). `TeXora --build-accessible talk.tex [--handout] [--still]` does the same.
+
+<details>
+<summary>Keys, your own macros, Beamer and engines</summary>
+<br>
+
+| Command | Accessibility keys |
+|---|---|
+| `\includegraphics`, `\includeimage` | `alt={...}`, or `artifact` / `decorative` for decoration |
+| `\includevideo` (second options) | `alt={...}` (what the link does), and `caption={...}`, `transcript={...}` or `transcriptfile=<file>` |
+| anything else | `\AccFigure{description}{...}`, `\AccArtifact{...}` |
+
+Transcripts given with `transcript=` are printed where `\AccTranscripts` is (for example in a last frame
+with `[allowframebreaks]`), each linked from its video. Your own macros are checked too: add them to an
+`accessgate-registry.toml` beside the `.tex` file, for example
+
+```toml
+[command.photo]
+requires = ["alt = alt | artifact"]
+```
+
+**Beamer** refuses LaTeX's tagging, so for Beamer slides **Build tagged copy** makes its copy with the
+`ltx-talk` class (TeX Live 2026). Frames, overlays, frame titles (as headings), pictures with their alt
+text, columns, blocks, theorems, verbatim frames and the contents stay; themes and speaker notes are left
+out; `<name>.acc-losses.txt` lists what the copy changed. A custom class or theme beside the
+presentation goes along as `<name>.acc.cls` / `<name>.acc.sty`. Works with `ltx-talk` 0.4.6 and 0.6.12
+(which needs LaTeX 2026-06-01: update LaTeX with it). Without `ltx-talk`, no copy is made and the check
+still applies.
+
+LuaLaTeX gives the best tags, pdfLaTeX tags too, and XeLaTeX's tags are incomplete. Validate PDF/UA-2
+files with [veraPDF](https://verapdf.org) (`verapdf --flavour ua2 talk.acc.pdf`); every tagged copy of
+the accessible templates passes with veraPDF 1.30.4. [PAC](https://pac.pdf-accessibility.org) does not
+state PDF/UA-2 support.
+</details>
+
 ### Using another LaTeX editor
 
 A presentation with TeXora's videos or pictures can be written and compiled in any LaTeX editor
 (TeXstudio, VS Code, Overleaf, ...) without errors:
 
-1. **Open the `.tex` file in TeXora once** (or compile it there). TeXora puts `texoravideo.sty` and
-   `texoraimage.sty` beside the file, makes the video posters (`texora-video/`) and converts the
+1. **Open the `.tex` file in TeXora once** (or compile it there). TeXora puts `texoravideo.sty`,
+   `texoraimage.sty` and `accessgate.sty` beside the file, makes the video posters (`texora-video/`) and converts the
    pictures (`texora-images/`).
 2. **Keep those files and folders with the `.tex` file**, also when copying or uploading it (for
    Overleaf, upload them too).
 3. Compile in any editor: every video shows its poster and every picture shows. Videos play, and
    presenting works, in TeXora.
 
-Before step 1, copy [`texoravideo.sty` and `texoraimage.sty`](assets/tex) next to the `.tex` file by hand.
+Before step 1, copy [`texoravideo.sty`, `texoraimage.sty` and `accessgate.sty`](assets/tex) next to the `.tex` file by hand.
 The document then compiles anywhere; a video or picture TeXora has not prepared yet shows as a box with
 its file name and a LaTeX warning, never an error. Videos and pictures added later get their poster or
 copy the next time TeXora compiles the file. Tested with pdfLaTeX, XeLaTeX and LuaLaTeX.

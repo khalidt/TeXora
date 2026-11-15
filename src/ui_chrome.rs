@@ -145,6 +145,10 @@ impl App {
                     let settings = self.left == Some(LeftTab::Settings);
                     self.act(ui, Icon::Gear, settings, Action::Settings);
                     ui.add_enabled_ui(has_doc, |ui| {
+                        let on = self.left == Some(LeftTab::Accessibility);
+                        if crate::icons::icon_button(ui, Icon::Access, on, "Accessibility checker: WCAG and PDF/UA").clicked() {
+                            self.left = if on { None } else { Some(LeftTab::Accessibility) };
+                        }
                         self.act(ui, Icon::Chart, self.left == Some(LeftTab::Analytics), Action::Analytics);
                         self.act(ui, Icon::Search, self.left == Some(LeftTab::Search), Action::Search);
                         self.act(ui, Icon::List, self.left == Some(LeftTab::Bookmarks), Action::Outline);
@@ -856,6 +860,16 @@ impl App {
         ui.menu_button("Tools", |ui| {
             self.item(ui, "Compile LaTeX", Action::Compile);
             self.item(ui, "Check required packages", Action::CheckPackages);
+            ui.separator();
+            if ui.button("Check accessibility").clicked() {
+                self.open_accessibility();
+                ui.close();
+            }
+            if ui.button("Build tagged copy").clicked() {
+                let c = ui.ctx().clone();
+                self.start_access_build(&c);
+                ui.close();
+            }
             ui.separator();
             self.item(ui, "Settings and shortcuts", Action::Settings);
         });

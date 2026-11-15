@@ -32,6 +32,7 @@ impl App {
                 (LeftTab::Bookmarks, Icon::List, "Contents and bookmarks"),
                 (LeftTab::Search, Icon::Search, "Search"),
                 (LeftTab::Analytics, Icon::Chart, "Analytics"),
+                (LeftTab::Accessibility, Icon::Access, "Accessibility checker"),
                 (LeftTab::Settings, Icon::Gear, "Settings"),
                 (LeftTab::Docs, Icon::Help, "Documentation"),
             ] {
@@ -44,6 +45,7 @@ impl App {
                 LeftTab::Bookmarks => "Contents",
                 LeftTab::Search => "Search",
                 LeftTab::Analytics => "Analytics",
+                LeftTab::Accessibility => "WCAG",
                 LeftTab::Settings => "Settings",
                 LeftTab::Docs => "Documentation",
             };
@@ -60,6 +62,7 @@ impl App {
             LeftTab::Bookmarks => self.bookmarks_tab(ui),
             LeftTab::Search => self.search_tab(ui),
             LeftTab::Analytics => self.analytics_tab(ui),
+            LeftTab::Accessibility => self.accessibility_tab(ui),
             LeftTab::Settings => self.settings_tab(ui),
             LeftTab::Docs => {
                 ScrollArea::vertical().id_salt("guide").auto_shrink([false, false]).show(ui, |ui| markdown(ui, GUIDE, 14.0));

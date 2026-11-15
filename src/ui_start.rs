@@ -82,7 +82,7 @@ impl App {
     fn start_actions(&mut self, ui: &mut Ui, width: f32) {
         ui.label(RichText::new("Get started").size(17.0).family(FontFamily::Name("medium".into())).color(INK));
         ui.add_space(4.0);
-        if card(ui, width, Icon::New, "New LaTeX presentation", "Start from a ready Beamer template", true).clicked() {
+        if card(ui, width, Icon::New, "New LaTeX presentation", "Slides or a tagged document, ready to edit", true).clicked() {
             self.new_presentation_dialog();
         }
         if card(ui, width, Icon::Pdf, "Open PDF presentation", "Present any PDF, with notes if it has them", false).clicked() {
@@ -315,7 +315,7 @@ impl App {
         let resp = Modal::new(Id::NULL.with("template-picker")).show(ctx, |ui| {
             ui.set_width(900.0);
             ui.label(RichText::new("New LaTeX presentation").size(20.0).family(FontFamily::Name("strong".into())).color(INK));
-            ui.label(RichText::new("Choose a style. Each template is a complete Beamer file with speaker notes, ready to edit. The animated ones show animations, GIF frames and video clips that play in TeXora.").size(13.0).color(MUTED));
+            ui.label(RichText::new("Choose a style. Each template is a complete file, ready to edit. The animated ones show animations, GIF frames and video clips that play in TeXora; the accessible ones show how to make slides usable with a screen reader; the documents are tagged articles to test in any LaTeX editor.").size(13.0).color(MUTED));
             ui.add_space(8.0);
             // The list scrolls when the window is too short for every template.
             let list_h = (ctx.content_rect().height() - 230.0).clamp(280.0, 660.0);
@@ -324,8 +324,17 @@ impl App {
                     ui.set_width(390.0);
                     ScrollArea::vertical().id_salt("template-list").max_height(list_h).auto_shrink([false, true]).show(ui, |ui| {
                         for (i, t) in crate::templates::TEMPLATES.iter().enumerate() {
-                            if i == 0 || i == crate::templates::FIRST_ANIMATED {
-                                let head = if i == 0 { "Classic" } else { "Animated" };
+                            let head = match i {
+                                0 => Some("Classic"),
+                                i if i == crate::templates::FIRST_ANIMATED => Some("Animated"),
+                                i if i == crate::templates::FIRST_ACCESSIBLE => Some("Accessible slides"),
+                                i if i == crate::templates::FIRST_DOCUMENT => Some("Documents for any editor (not slides)"),
+                                _ => None,
+                            };
+                            if let Some(head) = head {
+                                if i > 0 {
+                                    ui.add_space(4.0);
+                                }
                                 ui.label(RichText::new(head).size(12.5).family(FontFamily::Name("medium".into())).color(MUTED));
                                 ui.add_space(2.0);
                             }
@@ -335,7 +344,7 @@ impl App {
                             let row = Frame::new().fill(fill).stroke(stroke).corner_radius(8).inner_margin(Margin::same(8)).show(ui, |ui| {
                                 ui.set_width(ui.available_width());
                                 ui.horizontal(|ui| {
-                                    let img = draw_picture(ui, ctx, &format!("tpl-{}-1", t.id), t.title_png, 118.0);
+                                    let img = draw_picture(ui, ctx, &format!("tpl-{}-1", t.id), t.title_png, if t.is_document() { 70.0 } else { 118.0 });
                                     ui.add_space(4.0);
                                     ui.vertical(|ui| {
                                         ui.spacing_mut().item_spacing.y = 2.0;
@@ -348,6 +357,12 @@ impl App {
                                 .inner
                             });
                             let whole = ui.interact(row.response.rect, Id::NULL.with(("template-row", i)), Sense::click());
+                            // When the picker opens, the list scrolls to the chosen template, so the groups
+                            // further down (accessible slides, documents) are found where they are.
+                            if i == pick && !ctx.data(|d| d.get_temp::<bool>(Id::NULL.with("template-picker-scrolled")).unwrap_or(false)) {
+                                whole.scroll_to_me(Some(Align::Center));
+                                ctx.data_mut(|d| d.insert_temp(Id::NULL.with("template-picker-scrolled"), true));
+                            }
                             if whole.clicked() || row.inner.clicked() {
                                 pick = i;
                             }
@@ -365,10 +380,18 @@ impl App {
                     ui.label(RichText::new(t.name).size(17.0).family(FontFamily::Name("strong".into())).color(INK));
                     ui.add_space(4.0);
                     let w = ui.available_width().min(470.0);
-                    let wide = if t.tags.starts_with("4:3") { w * 0.82 } else { w };
-                    draw_picture(ui, ctx, &format!("tpl-{}-1", t.id), t.title_png, wide);
-                    ui.add_space(6.0);
-                    draw_picture(ui, ctx, &format!("tpl-{}-5", t.id), t.content_png, wide);
+                    if t.is_document() {
+                        // Pages are tall: the first two side by side.
+                        ui.horizontal_top(|ui| {
+                            draw_picture(ui, ctx, &format!("tpl-{}-1", t.id), t.title_png, w / 2.0 - 4.0);
+                            draw_picture(ui, ctx, &format!("tpl-{}-5", t.id), t.content_png, w / 2.0 - 4.0);
+                        });
+                    } else {
+                        let wide = if t.tags.starts_with("4:3") { w * 0.82 } else { w };
+                        draw_picture(ui, ctx, &format!("tpl-{}-1", t.id), t.title_png, wide);
+                        ui.add_space(6.0);
+                        draw_picture(ui, ctx, &format!("tpl-{}-5", t.id), t.content_png, wide);
+                    }
                 });
             });
             ui.add_space(10.0);
@@ -387,10 +410,12 @@ impl App {
         });
         if cancel || resp.should_close() {
             self.template_picker = None;
+            ctx.data_mut(|d| d.remove::<bool>(Id::NULL.with("template-picker-scrolled")));
             return;
         }
         if create {
             self.template_picker = None;
+            ctx.data_mut(|d| d.remove::<bool>(Id::NULL.with("template-picker-scrolled")));
             // Test pictures never open a save dialog; they create the presentation with --new instead.
             if !self.is_screenshot() {
                 self.save_new_presentation(pick);

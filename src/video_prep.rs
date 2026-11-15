@@ -101,6 +101,8 @@ pub fn tex_dir() -> std::io::Result<PathBuf> {
     let dir = dir.canonicalize().unwrap_or(dir);
     write_if_changed(&dir.join("texoravideo.sty"), STY.as_bytes())?;
     write_if_changed(&dir.join("texoraimage.sty"), crate::image_prep::STY.as_bytes())?;
+    write_if_changed(&dir.join("accessgate.sty"), crate::access::GATE_STY.as_bytes())?;
+    write_if_changed(&dir.join("accessgate-registry.toml"), crate::access::REGISTRY.as_bytes())?;
     write_if_changed(&dir.join("texoravideo-placeholder.png"), &placeholder_png())?;
     Ok(dir)
 }
@@ -215,9 +217,24 @@ pub(crate) fn balanced(s: &str, open: usize) -> Option<(&str, usize)> {
 }
 
 /// The `key=value` pairs of a video options list.
+/// Commas inside braces do not split: `transcript={Hello, world [1]}` is one option.
 pub fn options(list: &str) -> Vec<(String, String)> {
-    list.split(',').filter(|p| !p.trim().is_empty()).map(|p| match p.split_once('=') {
-        Some((k, v)) => (k.trim().to_string(), v.trim().to_string()),
+    let mut parts = vec![];
+    let (mut depth, mut start) = (0i32, 0usize);
+    for (i, c) in list.char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            ',' if depth <= 0 => {
+                parts.push(&list[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    parts.push(&list[start..]);
+    parts.into_iter().filter(|p| !p.trim().is_empty()).map(|p| match p.split_once('=') {
+        Some((k, v)) => (k.trim().to_string(), v.trim().trim_start_matches('{').trim_end_matches('}').trim().to_string()),
         None => (p.trim().to_string(), "true".to_string()),
     }).collect()
 }
@@ -379,6 +396,8 @@ pub fn prepare(root: &Path) -> Report {
     let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
     // The package beside the presentation too, so other LaTeX editors find it.
     place_beside(&dir, "texoravideo.sty", STY);
+    // texoravideo loads accessgate, which goes with it.
+    place_beside(&dir, "accessgate.sty", crate::access::GATE_STY);
     let out_dir = dir.join(FOLDER);
     if std::fs::create_dir_all(&out_dir).is_err() {
         return report;
@@ -577,6 +596,16 @@ mod tests {
 
     /// Uses GIFs only, which TeXora decodes itself, so it gives the same result on every computer,
     /// with or without ffmpeg or VLC (the test machines on GitHub have neither).
+    #[test]
+    fn options_with_text_in_braces_are_read_whole() {
+        let o = options("autoplay, transcript={Hello, world [1], posterat=90}, posterat=25, alt={A, b}");
+        let keys: Vec<&str> = o.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, vec!["autoplay", "transcript", "posterat", "alt"]);
+        assert_eq!(o[2].1, "25", "a posterat inside a transcript is text, not an option");
+        let u = uses_in("\\includevideo[width=3cm][transcript={Hi, [there] {x}},posterat=40]{clip.mp4}", Path::new("t.tex"));
+        assert_eq!((u[0].path.as_str(), u[0].at), ("clip.mp4", Some(40)));
+    }
+
     #[test]
     fn a_package_beside_the_presentation_is_kept_up_to_date_but_never_someone_elses() {
         let d = std::env::temp_dir().join(format!("texora-place-{}", std::process::id()));

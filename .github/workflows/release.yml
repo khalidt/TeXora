@@ -89,7 +89,7 @@ jobs:
         run: |
           V=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
           python3 scripts/make-deb.py ${{ matrix.kind }}
-          DEB=$(ls dist/$V/texora_*.deb)
+          DEB=$(ls dist/$V/TeXora-*.deb)
           dpkg-deb --info "$DEB"
           sudo apt-get install -y "./$DEB"
           texora --self-test
@@ -191,10 +191,9 @@ jobs:
           done > upload/VALIDATION.txt
           (cd upload && sha256sum $(ls | grep -v -e '^VALIDATION.txt$') > SHA256SUMS.txt)
           ls -l upload
-          for need in mac-arm64.dmg mac-x64.dmg mac-arm64.zip mac-x64.zip windows-x64-setup.exe windows-x64.zip linux-x64.tar.gz linux-arm64.tar.gz; do
+          for need in mac-arm64.dmg mac-x64.dmg mac-arm64.zip mac-x64.zip windows-x64-setup.exe windows-x64.zip linux-x64.tar.gz linux-arm64.tar.gz linux-x64.deb linux-arm64.deb; do
             ls upload | grep -q -- "$need" || { echo "Missing $need" >&2; exit 1; }
           done
-          ls upload | grep -q '_amd64.deb' && ls upload | grep -q '_arm64.deb'
       - name: Release notes
         run: |
           V=$VER
@@ -208,8 +207,8 @@ jobs:
           | macOS, Apple chips (M1 and later) | [TeXora-$V-mac-arm64.dmg](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-mac-arm64.dmg) | [zip](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-mac-arm64.zip) |
           | macOS, Intel | [TeXora-$V-mac-x64.dmg](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-mac-x64.dmg) | [zip](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-mac-x64.zip) |
           | Windows 10 and 11 (x64) | [TeXora-$V-windows-x64-setup.exe](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-windows-x64-setup.exe) | [zip](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-windows-x64.zip) |
-          | Debian, Ubuntu (x64) | [texora_${V}_amd64.deb](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/texora_${V}_amd64.deb) | [tar.gz](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-x64.tar.gz) |
-          | Debian, Ubuntu (arm64) | [texora_${V}_arm64.deb](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/texora_${V}_arm64.deb) | [tar.gz](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-arm64.tar.gz) |
+          | Debian, Ubuntu (x64) | [TeXora-$V-linux-x64.deb](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-x64.deb) | [tar.gz](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-x64.tar.gz) |
+          | Debian, Ubuntu (arm64) | [TeXora-$V-linux-arm64.deb](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-arm64.deb) | [tar.gz](https://github.com/$GITHUB_REPOSITORY/releases/download/v$V/TeXora-$V-linux-arm64.tar.gz) |
 
           <details>
           <summary>Opening TeXora for the first time</summary>
@@ -226,7 +225,7 @@ jobs:
           then Run anyway.
 
           **Linux.** Install the package for your computer, for example
-          sudo apt install ./texora_${V}_amd64.deb
+          sudo apt install ./TeXora-$V-linux-x64.deb
 
           To compile .tex files, install a TeX distribution: MacTeX on macOS, MiKTeX or TeX Live on
           Windows, TeX Live on Linux. More details are in the

@@ -1,0 +1,226 @@
+%% accessgate.sty -- an accessibility gate for LaTeX: tags only where tagging is on, never breaks a document.
+%%
+%% Part of TeXora, a LaTeX-native presenter for Beamer and PDF slides.
+%% Author:    Khalid Alkhaldi
+%% Copyright: 2026 Khalid Alkhaldi
+%% License:   PolyForm Noncommercial 1.0.0
+%%            https://polyformproject.org/licenses/noncommercial/1.0.0
+%% SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+%% Source:    https://github.com/khalidt/TeXora
+%% Date:      2026/11/13
+%%
+%%   \usepackage{accessgate}            reports are LaTeX warnings
+%%   \usepackage[strict]{accessgate}    reports are errors (or \AccStrict later in the preamble)
+%%   \usepackage[still]{accessgate}     every \AccMotion shows its still picture (or \AccStill)
+%%
+%% Needs the LaTeX kernel and etoolbox (to give animate's hidden annotation the description PDF/UA-2
+%% asks for). Every tagging call is guarded: when the document
+%% is not tagged (no \DocumentMetadata, an older LaTeX, or a class that cannot be tagged, such as beamer
+%% today), every command here just typesets its content. When tagging is on (\DocumentMetadata with
+%% tagging, LuaLaTeX recommended), it adds the structure a screen reader needs.
+%%
+%% For authors:
+%%   \AccFigure{<alt text>}{<content>}   content read as one picture with this description
+%%   \AccArtifact{<content>}             content that is decoration only, skipped by screen readers
+%%   \AccMotion{<animation>}{<still>}    the animation, or with `still' (\AccStill) the still picture
+%%   \AccHeaderRows{<n>}                 the first n rows of the following tables are headers (tagged)
+%%   \AccTranscripts                     prints every transcript collected by transcript= keys; put it in
+%%                                       an appendix section or frame (beamer: [allowframebreaks])
+%% For package writers (arguments are macros, so empty means "not given"):
+%%   \AccReport{<code>}{<message>}       a warning (an error with strict); the log line starts with
+%%                                       [<code>], so tools can count reports without reading prose
+%%   \AccRequireAlt{\alt}{<0|1 artifact>}{<name>}
+%%   \AccCheckMotion{<0|1 autoplay>}{<0|1 loop>}{<name>}
+%%   \AccIncludeGraphics{\opts}{\alt}{<file>}   \includegraphics, given alt= only where the kernel knows it
+%%   \AccTextAlt{\caption}{\transcript}{\transcriptfile}{<name>}
+%%
+%% Report codes and the success criteria they relate to (WCAG 2.2):
+%%   [alt] 1.1.1   [transcript] 1.2.1-1.2.3   [motion] 2.2.2   [placeholder] build incomplete
+%%
+%% Written for TeXora (texoravideo and texoraimage use it), but it has nothing TeXora-specific: any
+%% document or package may use it. Safe to share with the document.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{accessgate}[2026/11/13 v1.0 Accessibility gate: tags only where tagging is on]
+
+% ---- severity: a warning by default, an error with `strict' ----
+\newif\ifacc@strict
+\DeclareOption{strict}{\acc@stricttrue}
+% ---- reduced motion: `still' shows every \AccMotion as its still picture ----
+\newif\ifacc@still
+\DeclareOption{still}{\acc@stilltrue}
+\ProcessOptions\relax
+\newcommand\AccStrict{\acc@stricttrue}
+\newcommand\AccStill{\acc@stilltrue}
+% The condition is closed before either argument is used, so an animation whose code has \if...\fi
+% of its own (or an unbalanced one, as in some animate frames) cannot upset it.
+\NewDocumentCommand\AccMotion{+m +m}{%
+  \ifacc@still\expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi{#1}{#2}}
+\newcommand\AccReport[2]{%
+  \ifacc@strict
+    \PackageError{accessgate}{[#1] #2}{Strict mode is on (option `strict' or \string\AccStrict).}%
+  \else
+    \PackageWarning{accessgate}{[#1] #2}%
+  \fi}
+
+% ---- the gate: tagging calls only when tagpdf is there and active ----
+\ExplSyntaxOn
+\cs_new_protected:Npn \__acc_if_tagging:nn #1#2
+  {
+    \cs_if_exist:NTF \tag_if_active:TF
+      { \tag_if_active:TF {#1} {#2} }
+      {#2}
+  }
+% The description as plain text: macros in it (a file name, \LaTeX) are expanded the text-safe way
+% first, since tagpdf expands the alt text only one level.
+\tl_new:N \l__acc_alt_tl
+\cs_new_protected:Npn \__acc_set_alt:n #1
+  { \tl_set:Ne \l__acc_alt_tl { \text_expand:n {#1} } }
+\cs_new_protected:Npn \AccAltText #1 #2
+  { \__acc_set_alt:n {#2} \tl_set_eq:NN #1 \l__acc_alt_tl }
+% Content read as one Figure with its description; nothing inside is tagged again (no nested
+% marked content, whatever the content is: a picture, a box, text).
+\cs_new_protected:Npn \__acc_figure:nn #1#2
+  {
+    \__acc_if_tagging:nn
+      {
+        % The paragraph starts while tagging is on, so its begin and end are both counted.
+        \mode_leave_vertical:
+        \__acc_set_alt:n {#1}
+        \tag_mc_end_push:
+        \tag_struct_begin:n { tag=Figure, alt=\l__acc_alt_tl }
+        \tag_mc_begin:n { tag=Figure }
+        \tag_stop:
+        #2
+        \tag_start:
+        \tag_mc_end:
+        \tag_struct_end:
+        \tag_mc_begin_pop:n { }
+      }
+      {#2}
+  }
+% Decoration: an artifact, skipped by screen readers.
+\cs_new_protected:Npn \__acc_artifact:n #1
+  {
+    \__acc_if_tagging:nn
+      {
+        \mode_leave_vertical:
+        \tag_mc_end_push:
+        \tag_mc_begin:n { artifact }
+        \tag_stop:
+        #1
+        \tag_start:
+        \tag_mc_end:
+        \tag_mc_begin_pop:n { }
+      }
+      {#1}
+  }
+% A short caption under media: a paragraph of its own, read right after the media. (Not a Caption
+% tag: PDF/UA-2 allows Caption only as the first or last child of the figure it belongs to, and the
+% poster's Figure is already closed here; veraPDF 8.2.5.27-1.)
+\cs_new_protected:Npn \__acc_caption:n #1 {#1}
+% animate adds, for each animation, a hidden Screen annotation (for Foxit) with no /Contents, which
+% PDF/UA-2 requires (veraPDF 8.9.2.4.12-1). Where tagging is on, it gets one; if animate changes and
+% the patch does not apply, nothing happens. (animate's own alttext= key covers its other annotation.)
+\cs_new_protected:Npn \__acc_patch_animate:
+  {
+    \__acc_if_tagging:nn
+      {
+        \cs_if_exist:cT { @anim@animwidget }
+          {
+            \int_set:Nn \l_tmpa_int { \char_value_catcode:n { `\@ } }
+            \char_set_catcode_letter:N \@
+            \patchcmd \@anim@animwidget { /Subtype/Screen/F2 }
+              { /Subtype/Screen/F2/Contents~(Starts~and~stops~the~animation) } { }
+              {
+                \patchcmd \@anim@animwidget { /Subtype/Screen/F~2 }
+                  { /Subtype/Screen/F~2/Contents~(Starts~and~stops~the~animation) } { } { }
+              }
+            \char_set_catcode:nn { `\@ } { \l_tmpa_int }
+          }
+      }
+      { }
+  }
+\RequirePackage { etoolbox }
+% At the end of the preamble, under the document's catcodes (\patchcmd re-reads the macro), whether
+% animate came before this package or after it.
+\AddToHook { begindocument/before } { \__acc_patch_animate: }
+\NewDocumentCommand \AccFigure { m +m } { \__acc_figure:nn {#1} {#2} }
+\NewDocumentCommand \AccArtifact { +m } { \__acc_artifact:n {#1} }
+% The first #1 rows of the tables that follow (in the same group) are header rows (TH): only where
+% tagging is on and LaTeX knows the key (2025-06 and later); otherwise it does nothing.
+\NewDocumentCommand \AccHeaderRows { m }
+  {
+    \__acc_if_tagging:nn
+      { \IfFormatAtLeastTF { 2025-06-01 } { \tagpdfsetup { table/header-rows = {#1} } } { } }
+      { }
+  }
+\cs_new_eq:NN \acc@caption@tagged \__acc_caption:n
+\ExplSyntaxOff
+
+% ---- checks; arguments are macros, empty meaning "not given" ----
+\newcommand\AccRequireAlt[3]{%
+  \ifnum#2=1 \else\ifx#1\@empty
+    \AccReport{alt}{`#3' has no alt text. Add alt={...} describing it, or artifact if it is
+      decoration only (WCAG 1.1.1)}%
+  \fi\fi}
+\newcommand\AccCheckMotion[3]{%
+  \ifnum#1=1 \ifnum#2=1
+    \AccReport{motion}{`#3' starts by itself and loops. Moving content over 5 seconds needs a way to
+      pause it (WCAG 2.2.2); in TeXora a click pauses it, other viewers show its poster}%
+  \fi\fi}
+
+% ---- \includegraphics, with alt= only where this kernel knows the key ----
+\newif\ifacc@altkey
+\AtBeginDocument{\ifcsname KV@Gin@alt\endcsname\acc@altkeytrue\fi}
+\newcommand\AccIncludeGraphics[3]{%             #1 options (a macro), #2 alt (a macro), #3 file
+  \begingroup
+  \edef\acc@opts{\unexpanded\expandafter{#1}}%
+  \ifacc@altkey\ifx#2\@empty\else
+    \AccAltText\acc@alt{#2}%
+    \edef\acc@opts{\unexpanded\expandafter{\acc@opts},alt={\unexpanded\expandafter{\acc@alt}}}%
+  \fi\fi
+  \expandafter\acc@ig\expandafter{\acc@opts}{#3}%
+  \endgroup}
+\newcommand\acc@ig[2]{\includegraphics[#1]{#2}}
+
+% ---- text alternatives for media: caption, inline transcript, transcript file ----
+\newcounter{acc@tr}
+\newif\ifacc@printed
+\newcommand\acc@captionline[1]{\par\nopagebreak\smallskip{\footnotesize\acc@caption@tagged{#1}}\par}
+\newcommand\acc@filelink[2]{\par\smallskip{\footnotesize
+  \ifdefined\href \href{#1}{Transcript of #2 (file)}\else Transcript of #2: \texttt{#1}\fi}\par}
+% One entry per name: overlays repeat a frame, and its transcript is printed once.
+\newcommand\acc@addtranscript[2]{%              #1 name, #2 text (a macro)
+  \ifcsname acc@tr@#1\endcsname\else
+    \stepcounter{acc@tr}%
+    \expandafter\xdef\csname acc@tr@#1\endcsname{\theacc@tr}%
+    \expandafter\gdef\csname acc@trname@\theacc@tr\endcsname{#1}%
+    \global\expandafter\let\csname acc@trtext@\theacc@tr\endcsname#2%
+  \fi
+  \par\smallskip{\footnotesize
+    \ifdefined\hyperlink
+      \edef\acc@id{acctr-\csname acc@tr@#1\endcsname}%
+      \expandafter\hyperlink\expandafter{\acc@id}{Transcript of #1}%
+    \else Transcript of #1: see the Transcripts section\fi}\par}
+\newcommand\AccTextAlt[4]{%                     caption, transcript, transcriptfile (macros), name
+  \ifx#1\@empty\ifx#2\@empty\ifx#3\@empty
+    \AccReport{transcript}{`#4' has no caption=, transcript= or transcriptfile=. Media needs a text
+      alternative (WCAG 1.2.1 to 1.2.3)}%
+  \fi\fi\fi
+  \ifx#1\@empty\else \acc@captionline{#1}\fi
+  \ifx#3\@empty\else \acc@filelink{#3}{#4}\fi
+  \ifx#2\@empty\else \acc@addtranscript{#4}{#2}\fi}
+\newcommand\AccTranscripts{%
+  \global\acc@printedtrue
+  \count@\z@
+  \@whilenum\count@<\value{acc@tr}\do{%
+    \advance\count@\@ne
+    \par\medskip\noindent
+    \ifdefined\hypertarget \hypertarget{acctr-\the\count@}{}\fi
+    \textbf{Transcript: \csname acc@trname@\the\count@\endcsname}\par
+    \csname acc@trtext@\the\count@\endcsname\par}}
+\AtEndDocument{\ifnum\value{acc@tr}>0 \ifacc@printed\else
+  \AccReport{transcript}{Transcripts were given with transcript= but \string\AccTranscripts\space
+    was never used, so they are not in the document}%
+\fi\fi}
+\endinput

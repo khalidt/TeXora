@@ -1,0 +1,182 @@
+%% TeXora template: Accessible Motion. Slate and amber 16:9 slides with animations made with the
+%% animate package, done so that everyone can follow them: each one is described, can be paused,
+%% has a still version, and decorative movement is skipped by screen readers.
+%%
+%% What it uses:
+%%   - animate and TikZ (in every TeX Live), and accessgate (comes with TeXora; for another editor,
+%%     keep accessgate.sty beside this file). Animations play in TeXora and in Adobe Acrobat; other
+%%     viewers show their first frame.
+%%
+%% Techniques:
+%%   \AccFigure{description}{animation}   a described animation, read as one picture
+%%   [alttext={...}]                      animate's own key: the description on its play button
+%%   [controls]                           play and pause buttons under the animation
+%%   \AccMotion{animation}{still}         the animation, or its still picture with [still]
+%%   \usepackage[still]{accessgate}       every \AccMotion becomes its still picture (reduced motion)
+%%   \only<n>{...} steps                   the same change, one click at a time, instead of moving
+%%   \AccArtifact{...}                     decorative movement, skipped by screen readers
+%% Change the colours on the \definecolor lines below.
+% !TEX program = pdflatex
+\documentclass[aspectratio=169]{beamer}
+\usetheme{default}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{tikz}
+\usepackage{animate}
+\usepackage{accessgate}
+\hypersetup{pdflang=en-US,pdftitle={Accessible Motion},hidelinks}
+\definecolor{slate}{RGB}{30,41,59}
+\definecolor{amber}{RGB}{180,83,9}
+\definecolor{chalk}{RGB}{250,250,245}
+\definecolor{sand}{RGB}{245,236,215}
+\setbeamercolor{background canvas}{bg=chalk}
+\setbeamercolor{normal text}{fg=slate}
+\setbeamercolor{structure}{fg=amber}
+\setbeamercolor{frametitle}{fg=slate,bg=sand}
+\setbeamercolor{title}{fg=slate}
+\setbeamercolor{subtitle}{fg=amber}
+\setbeamercolor{block title}{bg=slate,fg=chalk}
+\setbeamercolor{block body}{bg=sand}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[triangle]
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip\begin{beamercolorbox}[wd=\paperwidth,ht=3ex,dp=1.3ex,leftskip=1.2em]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle\end{beamercolorbox}}
+\setbeamertemplate{footline}{%
+  \hfill\usebeamercolor[fg]{structure}\scriptsize\insertframenumber\,/\,\inserttotalframenumber\hspace*{1.2em}\vskip0.8em}
+\setbeameroption{show notes on second screen=right}
+
+% Reduced motion: \usepackage[still]{accessgate} above (or \AccStill) turns every
+% \AccMotion{animation}{still} into its still picture, for a handout, a printed copy or an audience
+% that asked for no movement. TeXora's Build tagged copy can set it too (--still).
+
+\newcommand{\code}[1]{{\small\ttfamily #1}}
+% One picture of the pendulum, at angle #1.
+\newcommand{\pendulum}[1]{%
+  \begin{tikzpicture}
+    \useasboundingbox (-2.2,-3.2) rectangle (2.2,0.3);
+    \draw[slate,thick] (-1,0) -- (1,0);
+    \draw[slate,thick] (0,0) -- ++(-90+#1:2.6) node[circle,fill=amber,inner sep=5pt] {};
+  \end{tikzpicture}}
+% One picture of the bars, the first #1 of five grown.
+\newcommand{\bars}[1]{%
+  \begin{tikzpicture}[y=0.5cm]
+    \useasboundingbox (-0.3,-0.4) rectangle (5.6,5.4);
+    \draw[slate] (-0.2,0) -- (5.4,0);
+    \foreach \h [count=\i] in {2,3,3.5,4.5,5} {
+      \ifnum\i>#1\relax\else\fill[amber] (\i-0.8,0) rectangle (\i-0.2,\h);\fi
+      \node[below,font=\scriptsize] at (\i-0.5,0) {\i};
+    }
+  \end{tikzpicture}}
+
+\title{Accessible Motion}
+\subtitle{Animations that everyone can follow, pause or skip}
+\author{Your Name}
+\institute{Your Institution}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \vfill
+  {\Huge\bfseries\usebeamercolor[fg]{title}\inserttitle\par}
+  \vspace{0.5em}
+  {\large\usebeamercolor[fg]{subtitle}\insertsubtitle\par}
+  \vspace{1.6em}
+  \insertauthor\quad\textperiodcentered\quad\insertinstitute\quad\textperiodcentered\quad\insertdate
+  \vfill
+\end{frame}
+\note{Every animation in this deck is described, can be paused, and has a still version.}
+
+\begin{frame}{Describe the animation}
+  \begin{columns}[c]
+    \begin{column}{0.45\textwidth}
+      \centering
+      \AccFigure{A pendulum swinging left and right, about once a second}{%
+        \AccMotion{\begin{animateinline}[controls,loop,palindrome,alttext={A pendulum swinging left and right}]{16}
+          \multiframe{17}{rA=-32+4}{\pendulum{\rA}}
+        \end{animateinline}}{\pendulum{0}}}
+    \end{column}
+    \begin{column}{0.51\textwidth}
+      \code{\textbackslash AccFigure\{A pendulum swinging\}\{}\\
+      \code{\ \ \textbackslash begin\{animateinline\}[controls,loop]}\\
+      \code{\ \ ...\}}
+      \par\medskip
+      \begin{itemize}
+        \item \code{\textbackslash AccFigure} makes it one described picture; animate's \code{alttext} names its play button.
+        \item \code{controls}: play and pause under it, so it never moves without an end.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+\note{Press play. The buttons pause it at any frame; the check accepts a loop that has controls.}
+
+\begin{frame}{Steps instead of movement}
+  \begin{columns}[c]
+    \begin{column}{0.45\textwidth}
+      \centering
+      \AccFigure{A bar chart with five bars that grow from left to right, from 2 to 5}{%
+        \only<1>{\bars{1}}\only<2>{\bars{3}}\only<3>{\bars{5}}}
+    \end{column}
+    \begin{column}{0.51\textwidth}
+      \begin{itemize}
+        \item<1-> One click, one change: the audience sets the pace.
+        \item<2-> Each step is a page of its own, so a printed copy keeps every stage.
+        \item<3-> Often clearer than an animation, and nothing moves by itself.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Decoration does not speak}
+  \begin{columns}[c]
+    \begin{column}{0.45\textwidth}
+      \centering
+      \AccArtifact{\AccMotion{\begin{animateinline}[controls,loop,alttext={Decorative spinner}]{8}
+        \multiframe{8}{iA=0+1}{%
+          \begin{tikzpicture}
+            \useasboundingbox (-1.4,-1.4) rectangle (1.4,1.4);
+            \foreach \k in {0,...,7} {
+              \pgfmathsetmacro\shade{\k==\iA ? 100 : 25}
+              \fill[amber!\shade] (\k*45:1.1) circle (0.16);
+            }
+          \end{tikzpicture}}
+      \end{animateinline}}{\tikz\fill[amber!25] circle (1.1);}}
+    \end{column}
+    \begin{column}{0.51\textwidth}
+      \begin{itemize}
+        \item A spinner or a moving background carries no meaning: wrap it in \code{\textbackslash AccArtifact}.
+        \item It still gets \code{controls}: movement distracts people who can see it.
+        \item Its buttons stay reachable by keyboard and screen readers; check the PDF with veraPDF.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A still version for everyone}
+  \begin{block}{Reduced motion}
+    Load the gate with \code{\textbackslash usepackage[still]\{accessgate\}}: each
+    \code{\textbackslash AccMotion\{animation\}\{still\}} becomes its still picture. TeXora's
+    tagged build can do the same without changing the file.
+  \end{block}
+  \par\medskip
+  \begin{itemize}
+    \item For a handout, a printed copy, or a viewer that cannot play animations.
+    \item For anyone who asked for no movement: some people get dizzy or lose their focus.
+    \item The descriptions stay the same either way.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Checklist}
+  \begin{enumerate}
+    \item Every animation: \code{\textbackslash AccFigure\{what it shows\}}, or \code{\textbackslash AccArtifact} if decoration.
+    \item Over 5 seconds and looping: \code{controls}, or no \code{autoplay}.
+    \item Nothing flashes more than three times a second (WCAG 2.3.1).
+    \item A still version: \code{\textbackslash AccMotion}, and the \code{still} option.
+    \item \textbf{Tools > Check accessibility}, then \textbf{Build tagged copy}.
+  \end{enumerate}
+\end{frame}
+\note{Thank the audience. Flashing faster than three times a second can cause seizures: never do it.}
+
+\end{document}

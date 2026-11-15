@@ -124,7 +124,14 @@ pub fn parse_log(log: &str) -> Vec<Problem> {
                 if f.ends_with(".tex") || f.ends_with(".sty") || f.ends_with(".cls") {
                     if let Ok(line) = n.parse::<usize>() {
                         let mut message = m.trim().to_string();
-                        if let Some(next) = lines.get(i + 1) {
+                        // TeX breaks log lines at 79 characters; a full line goes on in the next.
+                        let (mut j, mut cur) = (i + 1, *l);
+                        while cur.chars().count() == 79 {
+                            let Some(n) = lines.get(j) else { break };
+                            message.push_str(n.trim_end());
+                            (cur, j) = (n, j + 1);
+                        }
+                        if let Some(next) = lines.get(j) {
                             if next.starts_with("l.") {
                                 message = format!("{message}  ({})", next.trim());
                             }
@@ -556,6 +563,9 @@ mod tests {
         assert!(!p[1].is_error);
         assert_eq!(p[1].line, Some(30));
         assert!(p[2].is_error);
+        // A message TeX broke at 79 characters is read whole.
+        let log = "./texora-sample.acc.tex:231: Package tagpdf Error: The number of automatic begi\nn (41) and end (40)\n";
+        assert_eq!(parse_log(log)[0].message, "Package tagpdf Error: The number of automatic begin (41) and end (40)");
     }
 
     fn sample_in(dir: &str) -> PathBuf {

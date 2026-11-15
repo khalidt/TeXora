@@ -2,6 +2,9 @@
 #![allow(non_snake_case)] // The program file is named TeXora; see Cargo.toml.
 // No black console window behind the app on Windows.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+mod access;
+mod pdfcheck;
+mod ui_access;
 mod analytics;
 mod app;
 mod bidi;
@@ -99,18 +102,27 @@ Usage: TeXora [file.pdf | file.tex] [options]
   --version                show the version and exit
   --help, -h               show this list and exit
   --self-test[=file.png]   check this copy works, with no window, and exit (0 means it passed)
+  --check-accessibility <file.tex> [--strict]
+                           check the source for screen readers (alt text, transcripts, titles,
+                           language...), one finding per line, and exit (1: something to fix, with --strict)
+  --build-accessible <file.tex> [--strict] [--still] [--handout]
+                           make a tagged copy, <file>.acc.pdf (not validated; --still: animations
+                           as still pictures; --handout: one page per Beamer frame),
+                           then check its tags, and exit
 
 For testing and screenshots:
   --screenshot <file.png>  draw about 120 frames, save a picture of the window and exit
   --view <name>            start on: presenter, split, swap, overview, studio,
-                           analytics, settings, outline, search, audience, textnotes
+                           analytics, settings, outline, search, accessibility,
+                           audience, textnotes
   --goto <n>               start on page position n
   --window <W>x<H>         start at this window size
   --script \"<steps>\"       feed in test input, for example \"w:500;k:ArrowRight\"
   --demo                   fill the analytics with invented numbers
   --new <file.tex>         create a presentation from a Beamer template and open it
   --template <name>        with --new: classic, midnight, minimal, conference, sunrise,
-                           motion, flipbook or media
+                           motion, flipbook, media, access-lecture, access-media,
+                           access-motion, access-talk, access-article or access-handout
 
 Full details: README.md, or ? > Documentation in the app.";
 
@@ -121,6 +133,10 @@ fn parse_args() -> Result<Args, String> {
         if x == "--version" {
             println!("TeXora {}", update::VERSION);
             std::process::exit(0);
+        }
+        if x == "--check-accessibility" || x == "--build-accessible" {
+            let rest: Vec<String> = it.by_ref().collect();
+            std::process::exit(access::cli(x == "--build-accessible", &rest));
         }
         if x == "--self-test" || x.starts_with("--self-test=") {
             let out = x.strip_prefix("--self-test=").map(PathBuf::from);

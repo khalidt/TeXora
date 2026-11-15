@@ -84,6 +84,9 @@ pub fn pick_asset(files: &[(String, String)], os: &str, arch: &str, has_dpkg: bo
         _ => {
             let mut w = vec![];
             if has_dpkg {
+                // Named like the other downloads from 1.7.0 (TeXora-1.7.0-linux-x64.deb); the Debian-style
+                // name of earlier releases (texora_1.6.1_amd64.deb) is still recognised.
+                w.push(format!("-linux-{a}.deb"));
                 w.push(if a == "arm64" { "_arm64.deb".to_string() } else { "_amd64.deb".to_string() });
             }
             w.push(format!("-linux-{a}.tar.gz"));
@@ -157,8 +160,8 @@ mod tests {
             "TeXora-1.0.1-mac-x64.zip",
             "TeXora-1.0.1-windows-x64-setup.exe",
             "TeXora-1.0.1-windows-x64.zip",
-            "texora_1.0.1_amd64.deb",
-            "texora_1.0.1_arm64.deb",
+            "TeXora-1.0.1-linux-x64.deb",
+            "TeXora-1.0.1-linux-arm64.deb",
         ]
         .iter()
         .map(|n| (n.to_string(), format!("https://github.com/khalidt/TeXora/releases/download/v1.0.1/{n}")))
@@ -172,9 +175,12 @@ mod tests {
         assert_eq!(name("macos", "aarch64", false).as_deref(), Some("TeXora-1.0.1-mac-arm64.dmg"));
         assert_eq!(name("macos", "x86_64", false).as_deref(), Some("TeXora-1.0.1-mac-x64.dmg"));
         assert_eq!(name("windows", "x86_64", false).as_deref(), Some("TeXora-1.0.1-windows-x64-setup.exe"));
-        assert_eq!(name("linux", "x86_64", true).as_deref(), Some("texora_1.0.1_amd64.deb"));
-        assert_eq!(name("linux", "aarch64", true).as_deref(), Some("texora_1.0.1_arm64.deb"));
+        assert_eq!(name("linux", "x86_64", true).as_deref(), Some("TeXora-1.0.1-linux-x64.deb"));
+        assert_eq!(name("linux", "aarch64", true).as_deref(), Some("TeXora-1.0.1-linux-arm64.deb"));
         assert_eq!(name("linux", "x86_64", false).as_deref(), Some("TeXora-1.0.1-linux-x64.tar.gz"));
+        // A release from before 1.7.0 names its .deb the Debian way.
+        let old: Vec<(String, String)> = ["TeXora-1.6.1-linux-x64.tar.gz", "texora_1.6.1_amd64.deb"].iter().map(|n| (n.to_string(), format!("https://example.com/{n}"))).collect();
+        assert_eq!(pick_asset(&old, "linux", "x86_64", true).map(|(n, _)| n).as_deref(), Some("texora_1.6.1_amd64.deb"));
         // With no installer for this computer, the portable package is offered; with nothing, no button.
         let zips: Vec<_> = f.iter().filter(|(n, _)| !n.ends_with(".dmg")).cloned().collect();
         assert_eq!(pick_asset(&zips, "macos", "aarch64", false).map(|(n, _)| n).as_deref(), Some("TeXora-1.0.1-mac-arm64.zip"));
