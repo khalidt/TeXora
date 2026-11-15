@@ -242,6 +242,8 @@ fn stamp(p: &Path) -> (u64, u64) {
 /// someone else's.
 fn place_package(dir: &Path) {
     crate::video_prep::place_beside(dir, "texoraimage.sty", STY);
+    // texoraimage loads accessgate, which goes with it.
+    crate::video_prep::place_beside(dir, "accessgate.sty", crate::access::GATE_STY);
 }
 
 /// A converter that is on this computer, and the arguments that turn `input` into the PNG `output`.

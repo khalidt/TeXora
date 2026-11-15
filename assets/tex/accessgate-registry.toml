@@ -1,0 +1,114 @@
+# accessgate-registry.toml -- which LaTeX commands and environments carry structure, and what each must
+# provide to be accessible. Data, not code: TeXora's accessibility check reads it, and any other tool or
+# editor plugin can too.
+#
+# Add your own macros in a file of the same name beside your .tex file; its entries are added to these,
+# and an entry with the same name replaces the one here. Example, for a wrapper \newcommand\photo[2][]:
+#
+#   [command.photo]
+#   role = "Figure"
+#   requires = ["alt = alt | artifact"]
+#
+# requires  Keys that must appear in the command's optional [..] arguments. Each entry is one group:
+#           "code = key | key | ..." means any one of these keys satisfies it, and a miss is reported
+#           under that code. Without "code =", the code is the first key.
+# checks    Named checks TeXora knows:
+#             motion            autoplay together with loop, with no controls key: moving content
+#             descriptive-text  link text that says where it goes (not "here" or a bare address)
+#             title             a frame has a title ({...} after \begin{frame}, or \frametitle)
+#             header-row        a table marks its first row as a header (a rule under it)
+#             figure-wrapper    the command sits inside \AccFigure{alt}{...} (for packages that have
+#                               no alt key of their own, such as animate)
+# role      The structure it maps to in a tagged PDF (Figure, Link, Table, Sect, L, ...), for reference.
+
+[policy]
+# "warning" or "error"; the check's --strict option, and \usepackage[strict]{accessgate}, make every
+# report an error.
+default = "warning"
+
+[codes.alt]
+wcag = "1.1.1"
+summary = "Non-text content needs a text alternative"
+
+[codes.transcript]
+wcag = "1.2.1-1.2.3"
+summary = "Audio and video need a caption, transcript or text alternative"
+
+[codes.motion]
+wcag = "2.2.2"
+summary = "Moving content that starts by itself and lasts over 5 seconds needs a way to pause it"
+
+[codes.link]
+wcag = "2.4.4"
+summary = "Link text should say where the link goes"
+
+[codes.title]
+wcag = "2.4.6"
+summary = "Sections and slides need descriptive titles"
+
+[codes.table]
+wcag = "1.3.1"
+summary = "Tables need header cells marked so their structure is read"
+
+[codes.language]
+wcag = "3.1.1"
+summary = "The document's language must be set"
+
+[codes.doctitle]
+wcag = "2.4.2"
+summary = "The document needs a title"
+
+[codes.contrast]
+wcag = "1.4.3"
+summary = "Text needs a contrast of 4.5:1 with its background (3:1 for large text)"
+
+[codes.linkcolour]
+wcag = "1.4.1"
+summary = "Colour must not be the only way links (or anything else) are told apart"
+
+[codes.tagging]
+wcag = "4.1.2"
+summary = "The PDF needs tags (structure) for assistive technology"
+
+[codes.placeholder]
+wcag = ""
+summary = "Build incomplete: a video poster or converted picture is missing"
+
+[command.includegraphics]
+role = "Figure"
+requires = ["alt = alt | artifact | decorative"]
+
+[command.includeimage]
+role = "Figure"
+requires = ["alt = alt | artifact | decorative"]
+
+[command.includevideo]
+role = "Figure"
+requires = ["alt = alt", "transcript = caption | transcript | transcriptfile"]
+checks = ["motion"]
+
+[command.animategraphics]
+role = "Figure"
+checks = ["figure-wrapper", "motion"]
+
+[command.href]
+role = "Link"
+checks = ["descriptive-text"]
+
+[environment.animateinline]
+role = "Figure"
+checks = ["figure-wrapper", "motion"]
+
+[environment.tabular]
+role = "Table"
+checks = ["header-row"]
+
+[environment.frame]
+role = "Sect"
+checks = ["title"]
+
+[environment.itemize]
+role = "L"
+
+[environment.enumerate]
+role = "L"

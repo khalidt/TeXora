@@ -1,0 +1,95 @@
+%% TeXora template: Media Handout. Not slides: a tagged handout (an article) with a video, a GIF, a
+%% picture and an animation, to test TeXora's packages in other editors. It compiles in any LaTeX
+%% editor: TeXora, Overleaf, TeXstudio, TeXShop, VS Code with LaTeX Workshop.
+%%
+%% What it needs:
+%%   - texoravideo.sty, texoraimage.sty and accessgate.sty BESIDE this file. TeXora puts them there
+%%     when it creates this template or compiles it; for Overleaf, upload them with the .tex file.
+%%   - media/sample-video.mp4, media/sample-loop.gif, media/sample-video-transcript.txt and
+%%     media/test-card.png, which come with this template. Keep the media folder with the .tex file.
+%%   - LaTeX from 2023 or later; LuaLaTeX gives the best tags.
+%%
+%% What to expect in another editor:
+%%   - Before TeXora has compiled it once, a video shows as a box with its name (a LaTeX warning
+%%     "[placeholder]", never an error). After that, its poster from texora-video/ shows. Keep
+%%     texora-video/ and texora-images/ with the file when you copy or upload it.
+%%   - Videos play in TeXora; other viewers show the poster. The animation plays in TeXora and Adobe
+%%     Acrobat. The alt text, captions and transcripts are in every PDF.
+%% Change the colours on the \definecolor lines below.
+% !TEX program = lualatex
+\IfFormatAtLeastTF{2025-06-01}
+  {\DocumentMetadata{lang=en-US,pdfstandard=ua-2,tagging=on}}
+  {\DocumentMetadata{lang=en-US,pdfstandard=ua-1,testphase={phase-III}}}
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{animate}
+\usepackage{hyperref}
+\usepackage{texoravideo}
+\usepackage{texoraimage}
+\definecolor{forest}{RGB}{27,94,32}
+\definecolor{moss}{RGB}{232,243,233}
+\hypersetup{colorlinks,linkcolor=forest,urlcolor=forest,pdftitle={Media Handout},pdfauthor={Your Name}}
+
+\title{Media Handout}
+\author{Your Name\\ Your Institution}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  A handout with moving pictures that stays usable with a screen reader. Each section shows one
+  kind of media and the keys that describe it. Compile it in any editor to test the packages.
+\end{abstract}
+
+\section{A video}
+The video below plays when clicked in TeXora. Its \texttt{alt} says what clicking does, its
+\texttt{caption} what it shows, and its transcript, in a file of its own, everything in it.
+
+\begin{center}
+  \includevideo[width=0.6\textwidth][posterat=30,alt={Play video: a light beam turning, 6 seconds, no sound},caption={A light beam turns once around the centre.},transcriptfile=media/sample-video-transcript.txt]{media/sample-video.mp4}
+\end{center}
+
+\section{A GIF}
+A GIF is written the same way. This one loops, so it does not start by itself: a click starts
+and stops it.
+
+\begin{center}
+  \includevideo[height=4cm][loop,alt={Play animation: dots drifting from left to right, it loops},transcript={Small dots drift slowly from the left edge to the right edge, then start again. There is no text and no sound.}]{media/sample-loop.gif}
+\end{center}
+
+\section{A picture in any format}
+\texttt{\textbackslash includeimage} takes PNG and JPEG, and also AVIF, WebP, HEIC and JPEG~XL,
+which TeXora converts for LaTeX. It takes \texttt{alt} like \texttt{\textbackslash includegraphics}.
+
+\begin{center}
+  \includeimage[width=0.35\textwidth,alt={A television test card: eight vertical colour bars, a rainbow strip and a frame counter}]{media/test-card.png}
+\end{center}
+
+\section{An animation}
+The animate package has no \texttt{alt} key, so \texttt{\textbackslash AccFigure} gives the
+description. The \texttt{controls} show play and pause buttons.
+
+\begin{center}
+  \AccFigure{Five bars that grow one after another, from short on the left to tall on the right}{%
+  \begin{animateinline}[controls,loop,alttext={Five bars growing one after another}]{2}
+    \multiframe{5}{iN=1+1}{%
+      \begin{tikzpicture}[y=0.5cm]
+        \useasboundingbox (-0.3,-0.3) rectangle (5.4,5.3);
+        \draw (-0.2,0) -- (5.2,0);
+        \foreach \h [count=\i] in {1,2,3,4,5} {
+          \ifnum\i>\iN\relax\else\fill[forest] (\i-0.8,0) rectangle (\i-0.2,\h);\fi
+        }
+      \end{tikzpicture}}
+  \end{animateinline}}
+\end{center}
+
+\section{Transcripts}
+\AccTranscripts
+
+\end{document}

@@ -1,4 +1,5 @@
-//! The Beamer templates offered for a new presentation. Each is a complete .tex file in
+//! The templates offered for a new presentation: Beamer slides, accessible slides, and tagged
+//! documents (not slides) to test in any editor. Each is a complete .tex file in
 //! assets/templates/, with two preview pictures made from it (its title slide and a content slide).
 //! To change one, edit its .tex file and run scripts/make-template-previews.sh.
 //! The animated templates also bring files of their own (pictures and video clips), written into a
@@ -78,7 +79,20 @@ const VIDEOS: &[(&str, &[u8])] = &[
 /// The video clip of the Media Studio template.
 const CLIP: &[(&str, &[u8])] = &[("media/clip.mp4", include_bytes!("../assets/templates/media/clip.mp4"))];
 
-pub const TEMPLATES: [Template; 9] = [
+const TEST_CARD: (&str, &[u8]) = ("media/test-card.png", include_bytes!("../assets/templates/media/frame-1.png"));
+const TRANSCRIPT: (&str, &[u8]) = ("media/sample-video-transcript.txt", include_bytes!("../assets/templates/video/sample-video-transcript.txt"));
+const VIDEO: (&str, &[u8]) = ("media/sample-video.mp4", include_bytes!("../assets/templates/video/sample-video.mp4"));
+const GIF: (&str, &[u8]) = ("media/sample-loop.gif", include_bytes!("../assets/templates/video/sample-loop.gif"));
+/// TeXora's packages, beside a document meant for any editor (TeXora itself finds them by itself).
+const GATE: (&str, &[u8]) = ("accessgate.sty", include_bytes!("../assets/tex/accessgate.sty"));
+const VIDEO_STY: (&str, &[u8]) = ("texoravideo.sty", include_bytes!("../assets/tex/texoravideo.sty"));
+const IMAGE_STY: (&str, &[u8]) = ("texoraimage.sty", include_bytes!("../assets/tex/texoraimage.sty"));
+
+const LECTURE_FILES: &[(&str, &[u8])] = &[TEST_CARD];
+const ACCESS_MEDIA_FILES: &[(&str, &[u8])] = &[VIDEO, GIF, TRANSCRIPT];
+const HANDOUT_FILES: &[(&str, &[u8])] = &[VIDEO, GIF, TRANSCRIPT, TEST_CARD, GATE, VIDEO_STY, IMAGE_STY];
+
+pub const TEMPLATES: [Template; 15] = [
     template!("classic", "Classic Green", "Madrid theme with a calm green palette and a full information bar.", "16:9 · light · green"),
     template!("midnight", "Midnight", "Dark slides with amber highlights, easy on the eyes in a dim room.", "16:9 · dark · amber"),
     template!("minimal", "Minimal White", "Clean white slides, dark text and a single blue accent.", "16:9 · light · blue"),
@@ -88,10 +102,27 @@ pub const TEMPLATES: [Template; 9] = [
     template!("flipbook", "Flipbook", "Paper-white slides that play the frames of a GIF and bar charts that grow. The pictures come with it.", "4:3 · light · animated", FRAMES),
     template!("media", "Media Studio", "Violet slides with a video clip, a clip packed into the PDF, and charts that draw themselves. The clip comes with it.", "16:9 · light · video", CLIP),
     template!("video", "Video Guide", "Navy and gold slides that show and explain videos and GIFs playing inside the slide, with \\includevideo. A video and a GIF come with it.", "16:9 · light · video", VIDEOS),
+    template!("access-lecture", "Accessible Lecture", "High-contrast slides, one technique each: alt text, decoration, described drawings, tables, links, maths and the language.", "16:9 · high contrast · accessible", LECTURE_FILES),
+    template!("access-media", "Accessible Media", "A video and a GIF with alt text, a caption, a transcript in the slides and one in its own file, and a loop you can stop.", "16:9 · light · accessible video", ACCESS_MEDIA_FILES),
+    template!("access-motion", "Accessible Motion", "Animations that are described, can be paused, come as click-by-click steps and switch to still pictures with one line.", "16:9 · light · accessible animation"),
+    template!("access-talk", "Tagged Slides", "Slides that LaTeX tags directly, made with the ltx-talk class instead of Beamer. Needs TeX Live 2026.", "16:9 · ltx-talk · tagged", LECTURE_FILES),
+    template!("access-article", "Tagged Article", "Not slides: an article that LaTeX tags for screen readers, with nothing from TeXora in it, to test in any editor.", "page · tagged · any editor", LECTURE_FILES),
+    template!("access-handout", "Media Handout", "Not slides: a tagged handout with a video, a GIF, a picture and an animation, with TeXora's packages beside it for any editor.", "page · tagged · video · any editor", HANDOUT_FILES),
 ];
 
 /// Where the animated templates start in the list.
 pub const FIRST_ANIMATED: usize = 5;
+/// Where the accessible slides start.
+pub const FIRST_ACCESSIBLE: usize = 9;
+/// Where the documents (not slides) start.
+pub const FIRST_DOCUMENT: usize = 13;
+
+impl Template {
+    /// A page document (an article), not slides.
+    pub fn is_document(&self) -> bool {
+        self.tags.starts_with("page")
+    }
+}
 
 /// Writes the files template `t` needs into `dir`, leaving any that are already there alone.
 /// Returns the names of those it could not write.
@@ -124,7 +155,9 @@ mod tests {
         let mut themes = std::collections::HashSet::new();
         for t in &TEMPLATES {
             assert!(t.tex.contains("\\begin{document}") && t.tex.contains("\\end{document}"), "{}", t.id);
-            assert!(t.tex.contains("\\note{"), "{} has speaker notes", t.id);
+            if t.tex.contains("{beamer}") {
+                assert!(t.tex.contains("\\note{"), "{} has speaker notes", t.id);
+            }
             let theme = t.tex.lines().find(|l| l.starts_with("\\usetheme")).unwrap_or("");
             let colours: Vec<&str> = t.tex.lines().filter(|l| l.starts_with("\\definecolor")).collect();
             assert!(!colours.is_empty(), "{} sets its colours", t.id);
@@ -135,7 +168,7 @@ mod tests {
             }
         }
         assert_eq!(themes.len(), TEMPLATES.len(), "every template looks different");
-        for t in &TEMPLATES[FIRST_ANIMATED..] {
+        for t in &TEMPLATES[FIRST_ANIMATED..FIRST_ACCESSIBLE] {
             assert!(t.tex.contains("\\usepackage{animate}") || t.tex.contains("\\usepackage{texoravideo}"), "{} is animated", t.id);
             for (name, bytes) in t.files {
                 let stem = name.split('-').next().unwrap_or(name);
@@ -145,6 +178,52 @@ mod tests {
         }
         assert_eq!(by_id("sunrise"), 4);
         assert_eq!(by_id("nope"), 0);
+        assert!(TEMPLATES[FIRST_DOCUMENT..].iter().all(Template::is_document) && !TEMPLATES[..FIRST_DOCUMENT].iter().any(Template::is_document));
+    }
+
+    /// The accessible Beamer templates get a tagged copy (through ltx-talk, where TeX Live has it),
+    /// with every picture's alt text.
+    #[test]
+    fn accessible_beamer_templates_get_a_tagged_copy() {
+        if !crate::access::ltx_talk() {
+            return;
+        }
+        for t in TEMPLATES[FIRST_ACCESSIBLE..FIRST_DOCUMENT].iter().filter(|t| t.tex.contains("{beamer}")) {
+            let dir = std::env::temp_dir().join(format!("texora-template-tagged-{}-{}", std::process::id(), t.id));
+            std::fs::create_dir_all(&dir).unwrap();
+            let tex = dir.join("talk.tex");
+            std::fs::write(&tex, t.tex).unwrap();
+            assert!(write_files(&dir, t).is_empty());
+            std::fs::write(dir.join("accessgate.sty"), crate::access::GATE_STY).unwrap();
+            let b = crate::access::build(&tex, false);
+            let tags = b.tags.clone().unwrap_or_default();
+            assert!(b.ok && tags.tagged && tags.figures_without_alt == 0, "{}: {} {tags:?}", t.id, b.note);
+        }
+    }
+
+    /// The accessible templates and documents follow their own advice: written out with their files,
+    /// the accessibility check finds nothing to fix, and every file they name comes with them.
+    #[test]
+    fn accessible_templates_have_nothing_to_fix() {
+        for t in &TEMPLATES[FIRST_ACCESSIBLE..] {
+            let dir = std::env::temp_dir().join(format!("texora-template-access-{}-{}", std::process::id(), t.id));
+            std::fs::create_dir_all(&dir).unwrap();
+            let tex = dir.join("talk.tex");
+            std::fs::write(&tex, t.tex).unwrap();
+            assert!(write_files(&dir, t).is_empty(), "{} files", t.id);
+            let f: Vec<_> = crate::access::check(&tex).into_iter().filter(|f| f.severity >= crate::access::Severity::Warning).collect();
+            assert!(f.is_empty(), "{}: {:?}", t.id, f.iter().map(|f| f.line_text(&dir)).collect::<Vec<_>>());
+            for (name, _) in t.files {
+                if !name.ends_with(".sty") {
+                    assert!(t.tex.contains(name), "{} uses {name}", t.id);
+                }
+            }
+            for used in ["media/test-card.png", "media/sample-video.mp4", "media/sample-loop.gif", "media/sample-video-transcript.txt"] {
+                if t.tex.contains(&format!("{{{used}}}")) || t.tex.contains(&format!("={used}")) {
+                    assert!(dir.join(used).is_file(), "{} brings {used}", t.id);
+                }
+            }
+        }
     }
 
     #[test]
@@ -152,7 +231,11 @@ mod tests {
         if crate::latex::find_tool("pdflatex").is_none() {
             return;
         }
+        let ltx_talk = crate::access::ltx_talk();
         for t in &TEMPLATES {
+            if t.tex.contains("{ltx-talk}") && !ltx_talk {
+                continue;
+            }
             let dir = std::env::temp_dir().join(format!("texora-template-test-{}-{}", std::process::id(), t.id));
             std::fs::create_dir_all(&dir).unwrap();
             let tex = dir.join("talk.tex");

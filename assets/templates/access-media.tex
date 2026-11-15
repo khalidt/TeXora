@@ -1,0 +1,155 @@
+%% TeXora template: Accessible Media. Plum and cream 16:9 slides with a video and a GIF that play
+%% inside the slide, each with what people who cannot see or hear it need: alt text, a caption, a
+%% transcript (in the slides or in its own file) and no movement that starts and loops by itself.
+%%
+%% What it uses:
+%%   - texoravideo (comes with TeXora; for another editor, keep texoravideo.sty and accessgate.sty
+%%     beside this file). MP4 playback uses VLC or ffmpeg installed on your computer; GIFs need
+%%     nothing.
+%%   - media/sample-video.mp4, media/sample-loop.gif and media/sample-video-transcript.txt, which come
+%%     with this template.
+%%
+%% The keys, in the second [...] of \includevideo:
+%%   alt={...}            what the video is and what clicking does: "Play video: ..., 6 s"
+%%   caption={...}        one short line under the video
+%%   transcript={...}     the full text, printed where \AccTranscripts is, linked from the video
+%%   transcriptfile=...   a transcript in its own file (.txt, .vtt or .pdf), linked from the video
+%% Change the colours on the \definecolor lines below.
+% !TEX program = pdflatex
+\documentclass[aspectratio=169]{beamer}
+\usetheme{default}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{texoravideo}
+\hypersetup{pdflang=en-US,pdftitle={Accessible Media},hidelinks}
+\definecolor{plum}{RGB}{74,32,84}
+\definecolor{cream}{RGB}{252,248,240}
+\definecolor{rose}{RGB}{176,58,98}
+\definecolor{blush}{RGB}{243,230,236}
+\setbeamercolor{background canvas}{bg=cream}
+\setbeamercolor{normal text}{fg=plum!85!black}
+\setbeamercolor{structure}{fg=rose}
+\setbeamercolor{frametitle}{bg=plum,fg=cream}
+\setbeamercolor{title}{fg=plum}
+\setbeamercolor{subtitle}{fg=rose}
+\setbeamercolor{block title}{bg=rose,fg=white}
+\setbeamercolor{block body}{bg=blush}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip\begin{beamercolorbox}[wd=\paperwidth,ht=3ex,dp=1.3ex,leftskip=1.2em]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle\end{beamercolorbox}}
+\setbeamertemplate{footline}{%
+  \hfill\usebeamercolor[fg]{structure}\scriptsize\insertframenumber\,/\,\inserttotalframenumber\hspace*{1.2em}\vskip0.8em}
+\setbeameroption{show notes on second screen=right}
+
+\newcommand{\code}[1]{{\small\ttfamily #1}}
+
+\title{Accessible Media}
+\subtitle{Videos and GIFs for everyone in the room}
+\author{Your Name}
+\institute{Your Institution}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \vfill
+  {\Huge\bfseries\usebeamercolor[fg]{title}\inserttitle\par}
+  \vspace{0.5em}
+  {\large\usebeamercolor[fg]{subtitle}\insertsubtitle\par}
+  \vspace{1.6em}
+  \insertauthor\quad\textperiodcentered\quad\insertinstitute\quad\textperiodcentered\quad\insertdate
+  \vfill
+\end{frame}
+\note{Each clip in this deck has alt text and a text alternative. Check accessibility lists nothing to fix.}
+
+\begin{frame}{A video with a caption}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \includevideo[width=\linewidth][posterat=30,alt={Play video: a light beam turning, 6 seconds, no sound},caption={A light beam turns once around the centre.}]{media/sample-video.mp4}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \code{[alt=\{Play video: a light beam}\\
+      \code{\ \ turning, 6 seconds, no sound\},}\\
+      \code{\ caption=\{A light beam turns ...\}]}
+      \par\medskip
+      \begin{itemize}
+        \item The poster is a link, so \textbf{alt} names what clicking does.
+        \item The \textbf{caption} shows under the video, for everyone.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+\note{Click the clip to play it. Say the caption out loud too: it helps people at the back.}
+
+\begin{frame}{A transcript in the slides}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \includevideo[width=\linewidth][alt={Play video: a light beam turning, 6 seconds},transcript={The screen is dark. A single beam of light appears at the left and turns clockwise around the centre, once, in six seconds. There is no speech and no music.}]{media/sample-video.mp4}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{itemize}
+        \item \code{transcript=\{...\}}: any length.
+        \item A \emph{Transcript} link under the video leads to the text, printed on the last slide by \code{\textbackslash AccTranscripts}.
+        \item Describe what is seen as well as what is said.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A transcript in its own file}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \includevideo[width=\linewidth][alt={Play video: a light beam turning, 6 seconds},transcriptfile=media/sample-video-transcript.txt]{media/sample-video.mp4}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{itemize}
+        \item \code{transcriptfile=media/...txt}: a \code{.txt}, \code{.vtt} (subtitles) or \code{.pdf} kept with the slides.
+        \item The link under the video opens it.
+        \item Good for long talks and interviews.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Movement you can stop}
+  \begin{columns}[c]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includevideo[height=4cm][loop,alt={Play animation: dots drifting from left to right, it loops},caption={Dots drift across the picture. Click to start or stop.}]{media/sample-loop.gif}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}
+        \item Movement that starts by itself, loops and lasts over 5 seconds distracts many people (WCAG 2.2.2).
+        \item Here the GIF \textbf{loops} but starts on a click, and a click stops it.
+        \item The check flags \code{autoplay} together with \code{loop}.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+\note{If a looping clip must start by itself, keep it short, or tell the audience that a click pauses it.}
+
+\begin{frame}{Which key for which clip}
+  \centering
+  \AccHeaderRows{1}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Clip} & \textbf{Needs} & \textbf{Key} \\
+    \midrule
+    Silent, short & what it shows & \code{caption} \\
+    Speech or sound & every word, and the sounds & \code{transcript} or \code{transcriptfile} \\
+    Long, with subtitles & the subtitle file & \code{transcriptfile=talk.vtt} \\
+    Decorative loop & nothing to read & \code{alt}, and no \code{autoplay} \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{Transcripts}
+  \AccTranscripts
+\end{frame}
+\note{The transcripts frame breaks over as many slides as it needs.}
+
+\end{document}

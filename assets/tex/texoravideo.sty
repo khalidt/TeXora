@@ -1,5 +1,14 @@
 %% texoravideo.sty -- video and GIFs in LaTeX slides, played by TeXora.
 %%
+%% Part of TeXora, a LaTeX-native presenter for Beamer and PDF slides.
+%% Author:    Khalid Alkhaldi
+%% Copyright: 2026 Khalid Alkhaldi
+%% License:   PolyForm Noncommercial 1.0.0
+%%            https://polyformproject.org/licenses/noncommercial/1.0.0
+%% SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+%% Source:    https://github.com/khalidt/TeXora
+%% Date:      2026/11/13
+%%
 %% TeXora ships this package and finds it by itself when it compiles; there is no package to install.
 %% It also puts a copy beside the presentation, so the document compiles in other LaTeX editors too.
 %% GIFs play in TeXora by themselves; MP4 playback uses VLC or ffmpeg installed on your computer.
@@ -15,6 +24,16 @@
 %%   posterat=<percent>     poster from this far into the clip, 0-99 (default 0, the first frame);
 %%                          a video has one poster, so the first posterat given for it counts
 %%   poster=<image>         your own poster picture instead of a frame of the clip
+%% Accessibility (see accessgate.sty, beside this file):
+%%   alt={...}              what the video is and does, for screen readers; the poster is a link, so
+%%                          say so: alt={Play video: sorting demo, 40 s, no narration}. May also be
+%%                          given with the graphics options.
+%%   caption={...}          a short description, shown under the video
+%%   transcript={...}       the full text of the video, of any length; a "Transcript of ..." link
+%%                          leads to it, printed where \AccTranscripts is
+%%   transcriptfile=<file>  a transcript in its own file (.txt, .vtt, .pdf), linked
+%% alt and at least one of caption, transcript or transcriptfile are expected; autoplay with loop is
+%% reported as moving content (warnings, or errors with \usepackage[strict]{accessgate}).
 %%
 %% <file> is read exactly as written, from the presentation's folder: {clip.mp4} is beside the .tex
 %% file, {videos/clip.mp4} is in its videos folder (any folder name inside it works).
@@ -29,13 +48,16 @@
 %% video shows its poster. A video without a poster yet shows as a dark box with its name, never an
 %% error. This file was written by TeXora; it is safe to share it with the document.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{texoravideo}[2026/11/11 v1.1 Video in slides, played by TeXora]
+\ProvidesPackage{texoravideo}[2026/11/13 v1.2 Video in slides, played by TeXora]
 \RequirePackage{graphicx}
 \RequirePackage{xkeyval}
 \RequirePackage{pdftexcmds}
 \RequirePackage{iftex}
-\RequirePackage{hyperref}
 \RequirePackage{xcolor}
+\RequirePackage{accessgate}
+% hyperref only at the end of the preamble, and only if nothing loaded it: loading it here with no
+% options would clash with a document that loads it later with its own options.
+\AddToHook{begindocument/before}{\@ifpackageloaded{hyperref}{}{\RequirePackage{hyperref}}}
 
 \def\tv@dir{texora-video}
 
@@ -52,6 +74,12 @@
 \define@boolkey{texoravideo}[tv@]{mute}[true]{}
 \define@key{texoravideo}{posterat}{\edef\tv@at{\number\numexpr#1\relax}}
 \define@key{texoravideo}{poster}{\def\tv@poster{#1}}
+\define@key{texoravideo}{alt}{\def\tv@alt{#1}}
+\define@key{texoravideo}{caption}{\def\tv@caption{#1}}
+\define@key{texoravideo}{transcript}{\def\tv@transcript{#1}}
+\define@key{texoravideo}{transcriptfile}{\def\tv@transcriptfile{#1}}
+% alt may also come with the graphics options; it is taken out there and used the same way.
+\define@key{texoravideo@g}{alt}{\def\tv@alt{#1}}
 
 % Width and height for the stand-in box, read from the graphics options; others are left alone.
 \define@key{texoravideo@size}{width}{\def\tv@w{#1}}
@@ -78,6 +106,8 @@
   \begingroup
   \tv@autoplayfalse\tv@loopfalse\tv@mutefalse
   \def\tv@at{0}\def\tv@poster{}%
+  \def\tv@alt{}\def\tv@caption{}\def\tv@transcript{}\def\tv@transcriptfile{}%
+  \setkeys*{texoravideo@g}{#1}\let\tv@gopts\XKV@rm
   \setkeys{texoravideo}{#2}%
   % The path exactly as written, from the presentation's folder.
   \def\tv@rel{#3}%
@@ -95,13 +125,18 @@
   \fi
   \edef\tv@flags{a\iftv@autoplay1\else0\fi l\iftv@loop1\else0\fi m\iftv@mute1\else0\fi p\tv@at}%
   \hypersetup{hidelinks}%
+  \AccRequireAlt{\tv@alt}{0}{\tv@relstr}%
+  \AccCheckMotion{\iftv@autoplay1\else0\fi}{\iftv@loop1\else0\fi}{\tv@relstr}%
+  % Without alt, the link is still named for a screen reader: "Video <file>".
+  \ifx\tv@alt\@empty \edef\tv@readas{Video \tv@relstr}\else \let\tv@readas\tv@alt \fi
   \ifx\tv@image\@empty
-    \PackageWarning{texoravideo}{Video `\tv@relstr' has no poster yet. Open the presentation in
+    \AccReport{placeholder}{Video `\tv@relstr' has no poster yet. Open the presentation in
       TeXora once, or keep its texora-video folder with it}%
-    \href{texora-video:\tv@flags:\tv@relstr}{\tv@box{#1}{\tv@relstr}}%
+    \href{texora-video:\tv@flags:\tv@relstr}{\AccFigure{\tv@readas}{\tv@box{#1}{\tv@relstr}}}%
   \else
-    \href{texora-video:\tv@flags:\tv@relstr}{\includegraphics[#1]{\tv@image}}%
+    \href{texora-video:\tv@flags:\tv@relstr}{\AccIncludeGraphics{\tv@gopts}{\tv@readas}{\tv@image}}%
   \fi
+  \AccTextAlt{\tv@caption}{\tv@transcript}{\tv@transcriptfile}{\tv@relstr}%
   \endgroup
 }
 

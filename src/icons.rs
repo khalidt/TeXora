@@ -16,6 +16,8 @@ mod tests {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Icon {
     Home,
+    /// A person in a circle: accessibility.
+    Access,
     New,
     Folder,
     Pdf,
@@ -127,6 +129,13 @@ pub fn paint(p: &Painter, r: Rect, icon: Icon, c: Color32) {
             };
             star(10.5, 13.0, 8.0);
             star(18.5, 5.5, 3.2);
+        }
+        Icon::Access => {
+            p.circle_stroke(at(12.0, 12.0), 9.6 * u, s);
+            p.circle_filled(at(12.0, 6.6), 1.7 * u, c);
+            line(&[(6.8, 9.6), (17.2, 9.6)]);
+            line(&[(12.0, 9.6), (12.0, 13.6)]);
+            line(&[(9.2, 18.4), (12.0, 13.6), (14.8, 18.4)]);
         }
         Icon::Chart => {
             fill(5.0, 12.0, 8.5, 20.0, 1.0);

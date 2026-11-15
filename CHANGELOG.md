@@ -2,13 +2,38 @@
 
 All notable changes to TeXora. The newest version is first. Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH, where MINOR adds features that keep existing documents working and PATCH only fixes.
 
-## 1.6.1
+## 1.7.0
+
+### New
+
+- **Accessibility, in three layers that work alone.** A **registry** (`accessgate-registry.toml`: data saying which commands carry structure and what they need; add your own macros in a file of that name beside your `.tex`), a **source layer** (`accessgate.sty`, kernel only: it adds tags only where tagging is on and otherwise typesets as before, so documents never break) and **checking**.
+- **Alt text and transcripts.** `\includeimage` takes `alt` and `artifact`; `\includevideo` takes `alt`, `caption`, `transcript` and `transcriptfile`; `\AccFigure{description}{...}` describes anything else, such as `animate` animations. Placeholders are tagged as Figures (or artifacts) instead of being read out as stray text.
+- **Tools > Check accessibility**: an Accessibility tab in the studio listing missing alt text, captions or transcripts, autoplaying loops, vague links ("here"), untitled slides, unmarked table headers, the document's language and title, each with its line and WCAG 2.2 criterion. `TeXora --check-accessibility talk.tex [--strict]` prints the same, for any editor or CI.
+- **Build tagged copy**: a tagged copy, `talk.acc.pdf`, made through a wrapper file so `talk.tex` and `talk.pdf` are untouched; LuaLaTeX, the right `\DocumentMetadata` for the installed LaTeX, and the document's language. The copy's tags are then checked: structure, language and every picture's alt text. `TeXora --build-accessible talk.tex` does the same.
+- **The WCAG checker**, a new sidebar beside Search, Analytics and Settings (the accessibility button): it checks the open PDF, any PDF, slides or not, against WCAG 2.2 and PDF/UA, from the PDF itself (tags, language, title, PDF/UA declaration, alt text, headings, table headers, links, annotations, fonts, bookmarks, and the text, video and animations on each page) and from the LaTeX source when there is one. Each criterion fails, needs checking by hand, passes or does not apply, with the issues, how to fix them, and Go to page or Go to line. It can check the tagged copy of Beamer slides, build it, and run veraPDF when that is installed.
+- **Findings you can act on.** Each accessibility finding gives the line and column (`talk.tex:31:43`, as compilers do), the text it is about (`urlcolor=linkblue`), the problem, and how to fix it. In the Accessibility tab a finding is a card with the source line and that text marked; a click goes to the line and selects and marks the text. Findings about the whole document point at their line (a colour at its `\setbeamercolor` or `\hypersetup` key, the language at `\documentclass`) instead of line 1, and colour fixes give a colour that passes and the line of its `\definecolor`.
+- **A how-to, [how-to.md](https://github.com/khalidt/TeXora/blob/main/how-to.md)**: recipes for Beamer slides and documents, adding tags, describing each kind of content, a slide before and after fixing it, validating with veraPDF, other editors, automation, the messages you may meet, and a checklist.
+- **Validated with veraPDF.** The tagged copies TeXora makes of Beamer slides, and the accessible templates, validate as PDF/UA-2.
+- **ltx-talk 0.4.6 and 0.6.12** (0.6.12 needs LaTeX 2026-06-01). With 0.6.12 its own contents page and `\appendix` are used, frame labels are kept and `\againframe` repeats the frame. When `ltx-talk` was updated without LaTeX, the message says to update both.
+- **Build tagged copy options**: **One page per slide** (`--handout`: each frame on one page, so a screen reader does not hear text again on every overlay step) and **Still pictures** (`--still`). Each Beamer copy comes with `<name>.acc-losses.txt`, what the conversion left out, changed, or could not be sure of.
+- **Reduced motion in accessgate**: `\AccMotion{animation}{still}`, the `still` option and `\AccStill`.
+- **Colour checks**: `[contrast]` (WCAG 1.4.3) for the colour pairs the source sets, and `[linkcolour]` (1.4.1) for links told apart by colour alone.
+- **A guide, [Accessible.md](https://github.com/khalidt/TeXora/blob/main/Accessible.md)**: what is supported and how tagging works in TeXora and other editors, content by content (text, lists, pictures, drawings, animations, videos, tables, maths, links), how Beamer slides get a tagged PDF, and how to check its tags.
+- **`\AccHeaderRows{n}`** marks the first *n* rows of the following tables as headers (TH) in the tags; untagged, it does nothing.
+- **Six new templates.** Four accessible slide templates: **Accessible Lecture** (alt text, decoration, described drawings, tables, links, maths, language, contrast), **Accessible Media** (a video and a GIF with alt text, a caption, a transcript in the slides and one in its own file), **Accessible Motion** (described animations with pause buttons, click-by-click steps, a one-line still version) and **Tagged Slides** (an `ltx-talk` deck tagged by LaTeX itself). Two documents that are not slides, to test in any LaTeX editor: **Tagged Article** (LaTeX only) and **Media Handout** (a video, a GIF, a picture and an animation, with TeXora's packages beside it). The accessibility check finds nothing to fix in any of them.
+- **Tagged Beamer slides** (TeX Live 2026). Beamer refuses LaTeX's tagging, so the accessible build converts the presentation to `ltx-talk`, the LaTeX project's tagging-ready slide class. Frames, overlays, frame titles (tagged as headings), pictures with their alt text, columns, blocks, theorems, verbatim frames and the contents stay; themes, transitions and speaker notes are left out. A custom class or theme beside the presentation is converted with it. Without `ltx-talk` no copy is made, and the check still applies.
 
 ### Fixed
 
-- **The 1.6.0 packages could not be made.** From Rust 1.100, Cargo keeps a build script's files one folder deeper, so the PDF engine (PDFium) was copied into `target/release/build/` instead of beside the program, and every package step stopped with "libpdfium: No such file". The build now finds the program's folder by name, works with Rust 1.99 and 1.100, and stops with a clear message if the engine cannot be put there. Nothing else changed from 1.6.0, which was tagged but never released.
+- `texoravideo` loaded hyperref with no options, so a document loading hyperref later with its own options stopped with "Option clash". It now loads hyperref only when nothing has by the end of the preamble.
+- Video options are read brace-aware: a transcript with commas or brackets no longer confuses `posterat`.
+- An error message LaTeX broke over two log lines is shown whole in Problems.
 
-## 1.6.0
+### Changed
+
+- The Video Guide template gives every clip alt text and a caption, has a slide on screen readers and sets its language.
+
+## 1.6.1
 
 ### New
 

@@ -122,6 +122,13 @@ fn line_of_char(text: &str, ch: usize) -> usize {
 impl App {
     pub fn studio_ui(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
+        // A file not checked yet (just opened, or another tab) gets the accessibility check once.
+        if let Some(p) = self.src.as_ref().map(|s| s.path.clone()) {
+            if self.access_for.as_ref() != Some(&p) {
+                self.access = crate::access::check(&p);
+                self.access_for = Some(p);
+            }
+        }
         let frame = Frame::new().fill(SURFACE).inner_margin(Margin::symmetric(8, 4));
         Panel::top("studio-top").exact_size(44.0).frame(frame).show(ui, |ui| {
             ui.horizontal_centered(|ui| {
@@ -208,7 +215,8 @@ impl App {
                     self.log_wrap = !self.log_wrap;
                 }
                 ui.add_space(8.0);
-                for (tab, label) in [(LogTab::Log, "Full log".to_string()), (LogTab::Packages, format!("Packages ({missing} missing)")), (LogTab::Problems, problems_tab(errs, warns))] {
+                let access = self.access.iter().filter(|f| f.severity >= crate::access::Severity::Warning).count();
+                for (tab, label) in [(LogTab::Log, "Full log".to_string()), (LogTab::Access, format!("Accessibility ({access})")), (LogTab::Packages, format!("Packages ({missing} missing)")), (LogTab::Problems, problems_tab(errs, warns))] {
                     if ui.add(Button::selectable(self.log_tab == tab, RichText::new(label).size(13.0))).clicked() {
                         self.log_tab = tab;
                         self.log_open = true;
@@ -227,6 +235,7 @@ impl App {
             match self.log_tab {
                 LogTab::Problems => self.problems_list(ui),
                 LogTab::Packages => self.packages_list(ui),
+                LogTab::Access => self.access_list(ui),
                 LogTab::Log => {
                     let t = if self.full_log.is_empty() { "Compile to see the full log here." } else { self.full_log.as_str() };
                     ui.add(Label::new(RichText::new(t).monospace().size(12.5)).selectable(true));
@@ -240,6 +249,180 @@ impl App {
             LogTab::Log => self.full_log.clone(),
             LogTab::Problems => self.problems.iter().map(|p| format!("{}{}", p.line.map(|l| format!("line {l}: ")).unwrap_or_default(), p.message)).collect::<Vec<_>>().join("\n"),
             LogTab::Packages => self.reqs.iter().filter(|r| !r.found).map(|r| format!("{} {}: {}", r.kind.label(), r.name, r.hint)).collect::<Vec<_>>().join("\n"),
+            LogTab::Access => {
+                let dir = self.src.as_ref().and_then(|s| s.path.parent().map(|d| d.to_path_buf())).unwrap_or_default();
+                self.access.iter().map(|f| f.line_text(&dir)).collect::<Vec<_>>().join("\n")
+            }
+        }
+    }
+
+    /// Tools > Check accessibility: the check, in the studio's message panel.
+    pub fn open_accessibility(&mut self) {
+        if let Some(s) = &self.src {
+            self.access = crate::access::check(&s.path);
+        }
+        self.view = View::Studio;
+        self.log_tab = LogTab::Access;
+        self.log_open = true;
+    }
+
+    /// Tools > Build tagged copy: a tagged copy (`<name>.acc.pdf`) made in the background, through a
+    /// wrapper file, so the document and its own PDF stay as they are.
+    pub fn start_access_build(&mut self, ctx: &Context) {
+        self.open_accessibility();
+        let Some(path) = self.src.as_ref().map(|s| s.path.clone()) else {
+            self.status = "Open a .tex file to build an accessible PDF.".into();
+            return;
+        };
+        if self.access_rx.is_some() {
+            return;
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.access_rx = Some(rx);
+        let wake = ctx.clone();
+        let still = self.access_still;
+        let handout = self.access_handout;
+        std::thread::spawn(move || {
+            let _ = tx.send(crate::access::build_with(&path, &crate::access::BuildOptions { still, handout, ..Default::default() }));
+            wake.request_repaint();
+        });
+    }
+
+    fn access_poll(&mut self) {
+        if let Some(rx) = &self.access_rx {
+            if let Ok(b) = rx.try_recv() {
+                self.access = b.findings.clone();
+                self.status = b.note.clone();
+                self.access_build = Some(b);
+                self.access_rx = None;
+            }
+        }
+    }
+
+    fn access_list(&mut self, ui: &mut Ui) {
+        self.access_poll();
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Check again").clicked() {
+                if let Some(s) = &self.src {
+                    self.access = crate::access::check(&s.path);
+                }
+            }
+            let busy = self.access_rx.is_some();
+            if ui.add_enabled(!busy, Button::new("Build tagged copy")).on_hover_text("A tagged copy, <name>.acc.pdf, for screen readers; the document and its PDF are not changed. Not validated: check it with veraPDF (PDF/UA-2)").clicked() {
+                let c = ui.ctx().clone();
+                self.start_access_build(&c);
+            }
+            ui.checkbox(&mut self.access_still, "Still pictures").on_hover_text("Every \\AccMotion shows its still picture instead of the animation (accessgate's still option)");
+            ui.checkbox(&mut self.access_handout, "One page per slide").on_hover_text("Beamer slides: each frame on one page, its steps together, so a screen reader does not hear text that stays on screen once per step");
+            if busy {
+                ui.spinner();
+                ui.label(RichText::new("Building the tagged copy…").color(MUTED).size(12.5));
+            }
+            if let Some(pdf) = self.access_build.as_ref().and_then(|b| b.pdf.clone()) {
+                if ui.button("Open the tagged copy").clicked() {
+                    self.open_path(&pdf);
+                }
+            }
+        });
+        if let Some(b) = &self.access_build {
+            ui.label(RichText::new(&b.note).color(if b.ok { LEAF_DARK } else { WARN }).size(13.0));
+        }
+        ui.add_space(4.0);
+        if self.access.is_empty() {
+            ui.label(RichText::new("Nothing to fix for screen readers.").color(MUTED));
+            return;
+        }
+        let dir = self.src.as_ref().and_then(|s| s.path.parent().map(|d| d.to_path_buf())).unwrap_or_default();
+        let here = self.src.as_ref().map(|s| s.path.clone());
+        use crate::access::Severity;
+        for (sev, title, color, word) in [(Severity::Error, "Errors", BAD, "Error"), (Severity::Warning, "To fix", WARN, "Fix"), (Severity::Info, "Notes", MUTED, "Note")] {
+            let list: Vec<_> = self.access.iter().filter(|f| f.severity == sev).cloned().collect();
+            if list.is_empty() {
+                continue;
+            }
+            ui.label(RichText::new(format!("{title} ({})", list.len())).color(color).strong().size(13.5));
+            for (n, f) in list.into_iter().enumerate() {
+                let same_file = here.as_ref() == Some(&f.file);
+                // The source line, from the editor for this file, else from disk.
+                let line_text = if same_file {
+                    self.src.as_ref().and_then(|s| s.text.split('\n').nth(f.line.saturating_sub(1)).map(str::to_string))
+                } else {
+                    std::fs::read_to_string(&f.file).ok().and_then(|t| t.lines().nth(f.line.saturating_sub(1)).map(str::to_string))
+                };
+                let card = Frame::new().fill(color.gamma_multiply(0.05)).stroke(Stroke::new(1.0, color.gamma_multiply(0.25))).corner_radius(6).inner_margin(Margin::symmetric(10, 7)).show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    ui.spacing_mut().item_spacing.y = 3.0;
+                    // Where, and what.
+                    ui.horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing.x = 6.0;
+                        let (chip, _) = ui.allocate_exact_size(vec2(52.0, 18.0), Sense::hover());
+                        ui.painter().rect_filled(chip, 4.0, color.gamma_multiply(0.16));
+                        ui.painter().text(chip.center(), Align2::CENTER_CENTER, word, FontId::proportional(11.5), color);
+                        let file = f.file.strip_prefix(&dir).map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+                        let place = if f.col > 0 { format!("Line {}, column {}", f.line, f.col) } else { format!("Line {}", f.line) };
+                        ui.label(RichText::new(place).strong().size(13.0).color(INK));
+                        if !same_file {
+                            ui.label(RichText::new(format!("in {file}")).size(12.5).color(MUTED));
+                        }
+                        if !f.target.is_empty() {
+                            ui.label(RichText::new(&f.target).monospace().size(12.5).color(color));
+                        } else if f.subject != "(document)" {
+                            ui.label(RichText::new(&f.subject).monospace().size(12.5).color(color));
+                        }
+                        ui.label(RichText::new(format!("[{}]", f.code)).size(12.0).color(MUTED));
+                        if !f.wcag.is_empty() {
+                            ui.label(RichText::new(format!("WCAG {}", f.wcag)).size(12.0).color(MUTED));
+                        }
+                    });
+                    // The line itself, the part the finding is about marked.
+                    if let Some(text) = line_text.filter(|t| !t.trim().is_empty()) {
+                        let chars: Vec<char> = text.chars().collect();
+                        let (from, len) = if f.col > 0 && !f.target.is_empty() { (f.col - 1, f.target.chars().count()) } else { (0, 0) };
+                        // A long line shows the part around the mark.
+                        let start = from.saturating_sub(40).min(chars.len());
+                        let end = (from + len + 60).min(chars.len()).max(start);
+                        let mono = FontId::monospace(12.5);
+                        let plain = TextFormat { font_id: mono.clone(), color: INK, ..Default::default() };
+                        let mut job = LayoutJob::default();
+                        job.append(&format!("{:>4} │ {}", f.line, if start > 0 { "…" } else { "" }), 0.0, TextFormat { font_id: mono.clone(), color: MUTED, ..Default::default() });
+                        let piece = |a: usize, b: usize| chars[a.min(chars.len())..b.min(chars.len())].iter().collect::<String>();
+                        if len > 0 && from >= start && from < end {
+                            job.append(&piece(start, from), 0.0, plain.clone());
+                            job.append(&piece(from, from + len), 0.0, TextFormat { font_id: mono.clone(), color: INK, background: color.gamma_multiply(0.28), underline: Stroke::new(1.5, color), ..Default::default() });
+                            job.append(&piece(from + len, end), 0.0, plain.clone());
+                        } else {
+                            job.append(&piece(start, end), 0.0, plain.clone());
+                        }
+                        if end < chars.len() {
+                            job.append("…", 0.0, plain);
+                        }
+                        ui.label(job);
+                    }
+                    // What is wrong, and what to do.
+                    ui.horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing.x = 4.0;
+                        ui.label(RichText::new("Problem:").strong().size(13.0).color(INK));
+                        ui.label(RichText::new(&f.message).size(13.0).color(INK));
+                    });
+                    if !f.fix.is_empty() {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.spacing_mut().item_spacing.x = 4.0;
+                            ui.label(RichText::new("How to fix:").strong().size(13.0).color(LEAF_DARK));
+                            ui.label(RichText::new(&f.fix).size(13.0).color(INK));
+                        });
+                    }
+                });
+                let hint = if same_file { format!("Go to line {}", f.line) } else { "This line is in another file".to_string() };
+                let r = ui.interact(card.response.rect, Id::NULL.with(("access-finding", title, n)), Sense::click()).on_hover_cursor(CursorIcon::PointingHand).on_hover_text(hint);
+                if r.clicked() && same_file {
+                    if let Some(s) = &mut self.src {
+                        s.goto_line = Some(f.line);
+                        s.goto_select = (f.col > 0 && !f.target.is_empty()).then(|| (f.col, f.target.chars().count()));
+                    }
+                }
+                ui.add_space(4.0);
+            }
+            ui.add_space(6.0);
         }
     }
 
@@ -334,12 +517,22 @@ impl App {
         src.folded.retain(|l| regions.iter().any(|r| r.start == *l));
         let id = sid("tex-editor");
         let goto = src.goto_line.take();
+        // The selected word, to scroll to it also sideways when it is past the right edge.
+        let mut goto_word: Option<(usize, usize)> = None;
         if let Some(l) = goto {
             // A jump into a folded block opens it.
             open_folds_at(&regions, &mut src.folded, l);
             let mut st = TextEdit::load_state(ui.ctx(), id).unwrap_or_default();
-            let at = CCursor::new(char_of_line(&src.text, l));
-            st.cursor.set_char_range(Some(CCursorRange::one(at)));
+            let start = char_of_line(&src.text, l);
+            // With a column and a length (an accessibility finding), the word itself is selected.
+            let range = match src.goto_select.take() {
+                Some((col, len)) if col > 0 => {
+                    goto_word = Some((start + col - 1, start + col - 1 + len));
+                    CCursorRange::two(CCursor::new(start + col - 1), CCursor::new(start + col - 1 + len))
+                }
+                _ => CCursorRange::one(CCursor::new(start)),
+            };
+            st.cursor.set_char_range(Some(range));
             TextEdit::store_state(ui.ctx(), id, st);
         }
         let hidden = crate::fold::hidden_lines(&regions, &src.folded);
@@ -479,6 +672,31 @@ impl App {
                     out.response.request_focus();
                     let y = line_y.get(l.saturating_sub(1)).copied().unwrap_or(g.top() + (l.saturating_sub(1)) as f32 * row_h);
                     ui.scroll_to_rect(Rect::from_min_size(pos2(g.left(), y), vec2(10.0, row_h)), Some(Align::Center));
+                    if let Some((a, b)) = goto_word {
+                        // The whole word in view, with some of the text before it.
+                        let from = out.galley.pos_from_cursor(CCursor::new(a.saturating_sub(12))).translate(out.galley_pos.to_vec2());
+                        let to = out.galley.pos_from_cursor(CCursor::new(b)).translate(out.galley_pos.to_vec2());
+                        ui.scroll_to_rect(from.union(to), None);
+                    }
+                }
+                // The word a finding is about stays marked for a few seconds after the jump, fading,
+                // so the eye finds it on the line (the selection alone is easy to miss).
+                let mark_id = Id::NULL.with("tex-finding-mark");
+                let now = ui.input(|i| i.time);
+                if let Some((a, b)) = goto_word {
+                    ui.ctx().data_mut(|d| d.insert_temp(mark_id, (a, b, now)));
+                }
+                if let Some((a, b, t0)) = ui.ctx().data(|d| d.get_temp::<(usize, usize, f64)>(mark_id)) {
+                    let age = now - t0;
+                    if age < 4.0 && b <= out.galley.text().chars().count() {
+                        let r = out.galley.pos_from_cursor(CCursor::new(a)).union(out.galley.pos_from_cursor(CCursor::new(b))).translate(out.galley_pos.to_vec2());
+                        let alpha = ((1.0 - age / 4.0) * 120.0) as u8;
+                        ui.painter().rect_filled(r.expand2(vec2(2.0, 1.0)), 3.0, Color32::from_rgba_unmultiplied(232, 160, 40, alpha));
+                        ui.painter().line_segment([r.left_bottom() + vec2(0.0, 1.0), r.right_bottom() + vec2(0.0, 1.0)], Stroke::new(2.0, Color32::from_rgba_unmultiplied(200, 120, 20, alpha.saturating_mul(2))));
+                        ui.ctx().request_repaint();
+                    } else {
+                        ui.ctx().data_mut(|d| d.remove::<(usize, usize, f64)>(mark_id));
+                    }
                 }
             });
         });

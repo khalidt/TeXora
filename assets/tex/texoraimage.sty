@@ -1,5 +1,14 @@
 %% texoraimage.sty -- pictures LaTeX cannot read (AVIF, WebP, HEIC/HEIF, JPEG XL), made ready by TeXora.
 %%
+%% Part of TeXora, a LaTeX-native presenter for Beamer and PDF slides.
+%% Author:    Khalid Alkhaldi
+%% Copyright: 2026 Khalid Alkhaldi
+%% License:   PolyForm Noncommercial 1.0.0
+%%            https://polyformproject.org/licenses/noncommercial/1.0.0
+%% SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+%% Source:    https://github.com/khalidt/TeXora
+%% Date:      2026/11/13
+%%
 %%   \usepackage{texoraimage}
 %%   \includeimage[<graphics options>]{<file>}
 %%
@@ -17,11 +26,18 @@
 %% puts this file there for you), and the document compiles with every picture. A picture that has not
 %% been converted yet shows as a framed box with its name and a warning, never an error.
 %%
+%% Accessibility: alt={...} describes the picture for screen readers, artifact (or decorative) marks
+%% decoration they should skip; one of them is expected (a warning, or an error with
+%% \usepackage[strict]{accessgate}). They are read here, not passed on, so they work on every LaTeX:
+%% alt reaches \includegraphics where the kernel knows it, and the picture is tagged when the document
+%% is tagged (see accessgate.sty, beside this file).
+%%
 %% This file was written by TeXora; it is safe to share it with the document.
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{texoraimage}[2026/11/11 v1.0 Modern picture formats, converted by TeXora]
+\ProvidesPackage{texoraimage}[2026/11/13 v1.1 Modern picture formats, converted by TeXora]
 \RequirePackage{graphicx}
 \RequirePackage{xkeyval}
+\RequirePackage{accessgate}
 \RequirePackage{pdftexcmds}
 \RequirePackage{iftex}
 
@@ -38,6 +54,11 @@
 \define@key{texoraimage@size}{width}{\def\ti@w{#1}}
 \define@key{texoraimage@size}{height}{\def\ti@h{#1}}
 
+% Accessibility keys, taken out of the graphics options before they reach \includegraphics.
+\define@key{texoraimage@acc}{alt}{\def\ti@alt{#1}}
+\define@key{texoraimage@acc}{artifact}[true]{\def\ti@art{1}}
+\define@key{texoraimage@acc}{decorative}[true]{\def\ti@art{1}}
+
 % A framed box in place of a picture that is not ready, with its name.
 \newcommand\ti@placeholder[2]{%
   \def\ti@w{}\def\ti@h{}%
@@ -53,12 +74,21 @@
   \fi
   \advance\dimen@ by -2\fboxsep \advance\dimen@ by -2\fboxrule
   \advance\dimen@ii by -2\fboxsep \advance\dimen@ii by -2\fboxrule
-  \PackageWarning{texoraimage}{Picture `#2' is not converted yet. Open the presentation in TeXora
+  \AccReport{placeholder}{Picture `#2' is not converted yet. Open the presentation in TeXora
     once, or keep its texora-images folder with it}%
-  \fbox{\parbox[c][\dimen@ii][c]{\dimen@}%
+  % Read as the picture it stands for (its alt text), or skipped when it is decoration.
+  \def\ti@box{\fbox{\parbox[c][\dimen@ii][c]{\dimen@}%
     {\centering\footnotesize\ttfamily #2\par\smallskip\normalfont\scriptsize
-     open in TeXora to show this picture\par}}%
+     open in TeXora to show this picture\par}}}%
+  \ifnum\ti@art=1 \AccArtifact{\ti@box}%
+  \else\ifx\ti@alt\@empty \AccFigure{Picture #2, not available}{\ti@box}%
+  \else \AccFigure{\ti@alt}{\ti@box}\fi\fi
 }
+
+% The picture itself: described (alt) or decoration (artifact).
+\newcommand\ti@show[1]{%
+  \ifnum\ti@art=1 \AccArtifact{\AccIncludeGraphics{\ti@gopts}{\@empty}{#1}}%
+  \else \AccIncludeGraphics{\ti@gopts}{\ti@alt}{#1}\fi}
 
 \NewDocumentCommand\includeimage{O{} m}{%
   \begingroup
@@ -66,12 +96,17 @@
   \def\ti@rel{#2}%
   \edef\ti@relstr{\expandafter\detokenize\expandafter{\ti@rel}}%
   \edef\ti@hash{\expandafter\ti@mdfive\expandafter{\ti@rel}}%
+  % alt and artifact are read here; the other options go to \includegraphics.
+  \def\ti@alt{}\def\ti@art{0}%
+  \setkeys*{texoraimage@acc}{#1}%
+  \let\ti@gopts\XKV@rm
+  \AccRequireAlt{\ti@alt}{\ti@art}{\ti@relstr}%
   % TeXora's copy if there is one; else the file itself when LaTeX reads it; else the placeholder.
-  \IfFileExists{\ti@dir/\ti@hash.jpg}{\includegraphics[#1]{\ti@dir/\ti@hash.jpg}}{%
-    \IfFileExists{\ti@dir/\ti@hash.png}{\includegraphics[#1]{\ti@dir/\ti@hash.png}}{%
+  \IfFileExists{\ti@dir/\ti@hash.jpg}{\ti@show{\ti@dir/\ti@hash.jpg}}{%
+    \IfFileExists{\ti@dir/\ti@hash.png}{\ti@show{\ti@dir/\ti@hash.png}}{%
       \filename@parse{\ti@relstr}%
       \@ifundefined{ti@native@\filename@ext}{\ti@placeholder{#1}{\ti@relstr}}{%
-        \IfFileExists{\ti@relstr}{\includegraphics[#1]{#2}}{\ti@placeholder{#1}{\ti@relstr}}}}}%
+        \IfFileExists{\ti@relstr}{\ti@show{#2}}{\ti@placeholder{#1}{\ti@relstr}}}}}%
   \endgroup
 }
 

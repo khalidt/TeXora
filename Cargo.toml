@@ -1,6 +1,6 @@
 [package]
 name = "texora"
-version = "1.6.1"
+version = "1.7.0"
 edition = "2021"
 description = "TeXora: a LaTeX-native presenter for Beamer and PDF slides"
 license = "PolyForm-Noncommercial-1.0.0"
@@ -30,6 +30,7 @@ dirs = "7"
 md-5 = "0.11"
 avif-decode = { version = "3", default-features = false }
 jxl-oxide = { version = "0.12", default-features = false }
+toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
 
 # Fonts for other writing systems (Arabic, Hebrew, Chinese, Japanese, Korean, Hindi, Thai...) come from
 # the computer itself. On Linux, fontconfig is opened when the program runs instead of being linked, so
