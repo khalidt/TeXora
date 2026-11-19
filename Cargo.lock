@@ -3311,7 +3311,7 @@ dependencies = [
 
 [[package]]
 name = "texora"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "avif-decode",
  "dirs",

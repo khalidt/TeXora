@@ -228,7 +228,7 @@ impl App {
                 ui.style_mut().interaction.selectable_labels = false;
                 let w = ui.available_width();
                 let has_doc = self.doc.is_some();
-                let presenting = matches!(self.view, View::Presenter | View::Split);
+                let presenting = matches!(self.view, View::Presenter | View::Split | View::Teleprompter);
 
                 ui.add_enabled_ui(has_doc, |ui| {
                     self.view_group(ui);
@@ -666,14 +666,18 @@ impl App {
 
     fn view_group(&mut self, ui: &mut Ui) {
         let (v, swap) = (self.view, self.swap);
-        for (icon, large, tip) in [
-            (Icon::Presenter, false, "Presenter: notes with current and next slide"),
-            (Icon::LargeSlide, true, "Large slide with notes beside it"),
-        ] {
-            if icon_button(ui, icon, v == View::Presenter && swap == large, tip).clicked() {
-                self.view = View::Presenter;
-                self.swap = large;
-            }
+        if icon_button(ui, Icon::Presenter, v == View::Presenter && !swap, "Presenter notes: notes with current and next slide").clicked() {
+            self.view = View::Presenter;
+            self.swap = false;
+        }
+        // Its own view: the notes as a script that scrolls by itself.
+        let tip = "Teleprompter notes: the whole talk's notes scroll by themselves, with play and pause (K) and the speed ([ and ])";
+        if icon_button(ui, Icon::Prompter, v == View::Teleprompter, tip).clicked() {
+            self.show_prompter();
+        }
+        if icon_button(ui, Icon::LargeSlide, v == View::Presenter && swap, "Large slide with notes beside it").clicked() {
+            self.view = View::Presenter;
+            self.swap = true;
         }
         self.act(ui, Icon::Split, v == View::Split, Action::SplitView);
         self.act(ui, Icon::Grid, v == View::Overview, Action::Overview);
@@ -780,6 +784,10 @@ impl App {
             if ui.button("Presenter").clicked() {
                 self.view = View::Presenter;
                 self.swap = false;
+                ui.close();
+            }
+            if ui.button("Teleprompter").clicked() {
+                self.show_prompter();
                 ui.close();
             }
             if ui.button("Large slide").clicked() {

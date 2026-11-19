@@ -685,6 +685,65 @@ impl App {
         self.peek_popup(&ctx);
     }
 
+    /// The teleprompter view: the talk's notes as one script that scrolls by itself, taking most of
+    /// the width, with the current and next slide in a column beside it, and the sections and timer
+    /// below, as in the presenter view. The divider between them can be moved.
+    pub fn teleprompter_ui(&mut self, ui: &mut Ui) {
+        let full = ui.max_rect();
+        let ctx = ui.ctx().clone();
+        ui.painter().rect_filled(full, 0.0, BG);
+        if self.doc.is_none() {
+            self.busy_ui(ui, full);
+            return;
+        }
+        let s = (full.width() / 1388.0).clamp(0.72, 1.7);
+        let k = s.min(1.2);
+        let pad = 16.0 * k;
+        let gap = 14.0 * k;
+        let head_h = (54.0 * s).clamp(44.0, 72.0);
+        let foot_h = (102.0 * s).clamp(88.0, 140.0);
+        let nav_h = (52.0 * s).clamp(42.0, 66.0);
+        let aspect = self.deck.aspect.max(0.1);
+        let head = Rect::from_min_max(pos2(full.left() + pad, full.top()), pos2(full.right() - pad, full.top() + head_h));
+        self.head_row(ui, head, s);
+        let body_top = head.bottom() + 12.0 * k;
+        let body_bottom = full.bottom() - foot_h;
+        let inner_w = full.width() - 2.0 * pad;
+        let split = self.st.layout.prompter_col.unwrap_or(0.7);
+        let div_x = full.left() + pad + inner_w * split;
+        let main = Rect::from_min_max(pos2(full.left() + pad, body_top), pos2(div_x - gap / 2.0, body_bottom - nav_h));
+        let col = Rect::from_min_max(pos2(div_x + gap / 2.0, body_top), pos2(full.right() - pad, body_bottom - 10.0 * k));
+        let label = 14.0 * k;
+        let p = ui.painter().clone();
+
+        let top_label = card(&p, main, "Teleprompter", label);
+        self.teleprompter_panel(ui, Rect::from_min_max(main.min + vec2(4.0, top_label), main.max - vec2(4.0, 6.0)), s);
+        self.nav_row(ui, Rect::from_min_max(pos2(main.left(), main.bottom()), pos2(main.right(), body_bottom)), s);
+
+        // The current slide on top, the next one below, each as tall as its picture needs.
+        let mid = col.top() + col.height() * current_row(col.width(), col.height(), aspect, label + 34.0, gap);
+        let top_box = Rect::from_min_max(col.min, pos2(col.right(), mid - gap / 2.0));
+        let next_box = Rect::from_min_max(pos2(col.left(), mid + gap / 2.0), col.max);
+        let cur_label = card(&p, top_box, "Current slide", label);
+        let next_label = card(&p, next_box, "Next slide", label);
+        let r = fit(Rect::from_min_max(top_box.min + vec2(14.0, cur_label), top_box.max - vec2(14.0, 12.0)), aspect, false);
+        self.paint_stage(ui, r);
+        p.rect_stroke(r, 2.0, Stroke::new(1.0, CARD_LINE), StrokeKind::Outside);
+        let cur = self.cur;
+        self.slide_input(ui, r, cur, "prompter-slide");
+        let next_rect = fit(Rect::from_min_max(next_box.min + vec2(14.0, next_label), next_box.max - vec2(14.0, 12.0)), aspect, false);
+        self.paint_next(ui, next_rect);
+        p.rect_stroke(next_rect, 2.0, Stroke::new(1.0, CARD_LINE), StrokeKind::Outside);
+
+        let across = Rect::from_center_size(pos2(div_x, (body_top + body_bottom) / 2.0), vec2(gap.max(10.0), body_bottom - body_top));
+        let a = drag_handle(ui, "prompter-col", across, true, false);
+        if a.apply(&mut self.st.layout.prompter_col, split, a.delta.x / inner_w.max(1.0)) {
+            self.save_layout();
+        }
+        self.bottom_bar(ui, Rect::from_min_max(pos2(full.left() + pad, full.bottom() - foot_h), pos2(full.right() - pad, full.bottom())), s);
+        self.peek_popup(&ctx);
+    }
+
     /// The files on show, whether everything is ready (or what the audience sees), and Present.
     fn head_row(&mut self, ui: &mut Ui, r: Rect, s: f32) {
         let k = s.min(1.2);
@@ -965,7 +1024,7 @@ impl App {
     }
 
     /// What the notes area shows for the current slide: the PDF notes page or written notes.
-    fn notes_mode(&self) -> NotesView {
+    pub fn notes_mode(&self) -> NotesView {
         let frame = self.frame();
         let has_pdf = self.deck.slides.get(self.cur).and_then(|x| x.notes).is_some();
         match self.notes_view {
@@ -980,7 +1039,7 @@ impl App {
     /// Width over height of the PDF notes page the notes area is showing now, or None when it shows
     /// written notes (or the note editor), which can take any shape.
     pub fn notes_page_aspect(&self) -> Option<f32> {
-        if self.note_draft.is_some() || self.notes_mode() != NotesView::Pdf {
+        if self.note_draft.is_some() || self.prompter_shown() || self.notes_mode() != NotesView::Pdf {
             return None;
         }
         let (p, reg) = self.deck.slides.get(self.cur)?.notes?;
@@ -992,6 +1051,10 @@ impl App {
         let frame = self.frame();
         let sl = self.deck.slides.get(self.cur).cloned();
         let text = self.note_for(frame);
+        // The reading guide (Down and Up): counted again as the notes are drawn.
+        self.note_lines_shown = 0;
+        let guide = self.note_line_here();
+        let moved = std::mem::take(&mut self.note_line_moved);
         if self.note_draft.is_some() {
             self.note_editor(ui, rect, s);
             return;
@@ -1008,6 +1071,14 @@ impl App {
                 self.paint_page(ui, r, p, reg, uv);
                 let resp = ui.interact(r, sid("notes-page"), Sense::click_and_drag());
                 pan_zoom(ui, &resp, r, &mut self.notes_zoom, &mut self.zoom_changed);
+                // The guide marks a line of the note on the page itself.
+                let on_page = self.doc.as_ref().and_then(|d| d.pages.get(p)).map(|pg| crate::pdf::lines_in(&pg.lines, reg)).unwrap_or_default();
+                let lines = crate::pdf::note_body_lines(on_page, text.as_deref());
+                self.note_lines_shown = lines.len();
+                if let Some(l) = guide.and_then(|i| lines.get(i.min(lines.len().saturating_sub(1)))) {
+                    let row = Rect::from_two_pos(to_screen(r, uv, [l.rect[0], l.rect[1]]), to_screen(r, uv, [l.rect[2], l.rect[3]]));
+                    ui.painter().with_clip_rect(r).extend(guide_mark(row, s));
+                }
                 // A faint frame shows where the notes page ends, the same as around the slide.
                 ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, LINE), StrokeKind::Outside);
             }
@@ -1020,7 +1091,20 @@ impl App {
                 // The source has \note{} commands, but its frames cannot be matched to the slides.
                 let unmatched = !self.source_lines_up() && self.src.as_ref().is_some_and(|x| x.frames.iter().any(|f| !f.note.is_empty()));
                 let out = ScrollArea::vertical().id_salt("notes-text").auto_shrink([false, false]).show(&mut child, |ui| match &text {
-                    Some(t) => markdown(ui, t, size),
+                    Some(t) => {
+                        // The guide goes behind the text, so it is drawn first, once the lines are known.
+                        let behind = ui.painter().add(Shape::Noop);
+                        // Room on the left for the guide's bar.
+                        let gap = (12.0 * s.max(0.6)) as i8;
+                        let rows = Frame::NONE.inner_margin(egui::Margin { left: gap, ..Default::default() }).show(ui, |ui| markdown_rows(ui, t, size)).inner;
+                        if let Some(row) = guide.and_then(|i| rows.get(i.min(rows.len().saturating_sub(1)))) {
+                            ui.painter().set(behind, Shape::Vec(guide_mark(*row, s)));
+                            if moved {
+                                ui.scroll_to_rect(row.expand(size * 0.6), Some(Align::Center));
+                            }
+                        }
+                        rows.len()
+                    }
                     None => {
                         ui.label(RichText::new("No notes on this slide yet.").size((20.0 * s).max(11.0)).color(MUTED));
                         if unmatched {
@@ -1028,8 +1112,10 @@ impl App {
                             ui.label(RichText::new(why).size((13.0 * s).max(10.5)).color(MUTED));
                         }
                         write = ui.button("Write notes").clicked();
+                        0
                     }
                 });
+                self.note_lines_shown = out.inner;
                 if write {
                     self.begin_note_edit();
                 }
@@ -1044,6 +1130,241 @@ impl App {
                     }
                 }
             }
+        }
+    }
+
+    /// The teleprompter: the notes of the whole talk as one script that scrolls by itself, for reading
+    /// while presenting. Play and pause and the speed sit along its bottom, and a band marks the
+    /// reading line. A new slide brings its notes to the reading line, gliding there; reading on never
+    /// changes the slide. The wheel, and Down and Up, move the script by hand; Cmd or Ctrl with the
+    /// wheel, or a pinch, sets the text size.
+    pub fn teleprompter_panel(&mut self, ui: &mut Ui, rect: Rect, s: f32) {
+        let k = s.max(0.6);
+        let size = (self.st.notes_size * s * 1.2).max(14.0);
+        let line = size * 1.35;
+        let bar_h = (42.0 * k).max(32.0);
+        let bar = Rect::from_min_max(pos2(rect.left() + 10.0 * k, rect.bottom() - bar_h), pos2(rect.right() - 10.0 * k, rect.bottom()));
+        let view = Rect::from_min_max(rect.min + vec2(16.0 * k, 4.0 * k), pos2(rect.right() - 16.0 * k, bar.top() - 6.0 * k));
+        // The reading line sits a third of the way down; the script starts and ends with room so its
+        // first and last lines can reach it.
+        let read_y = view.height() * 0.32;
+        let lead = (read_y - line * 0.5).max(0.0);
+        let frame = self.frame();
+        if self.prompter_frame != Some(frame) {
+            self.prompter_frame = Some(frame);
+            self.prompter_seek = Some(frame);
+        }
+
+        // Where the script is: gliding to a slide's notes, scrolling at the reading speed, or moved by hand.
+        let dt = ui.input(|i| i.stable_dt).min(0.1);
+        let mut offset = self.prompter_offset;
+        let before = offset;
+        // Whether the script moved by itself or by hand (not gliding to a slide's notes).
+        let mut read_on = false;
+        if ui.rect_contains_pointer(view) {
+            let (wheel, pinch) = ui.input(|i| (i.smooth_scroll_delta().y, i.zoom_delta()));
+            if (pinch - 1.0).abs() > 0.0005 {
+                self.st.notes_size = (self.st.notes_size * pinch).clamp(14.0, 60.0);
+            } else if wheel != 0.0 {
+                offset -= wheel;
+                self.prompter_target = None;
+                read_on = true;
+            }
+        }
+        if self.prompter_nudge != 0.0 {
+            offset += self.prompter_nudge * line;
+            self.prompter_nudge = 0.0;
+            self.prompter_target = None;
+            read_on = true;
+        }
+        if let Some(t) = self.prompter_target {
+            let d = t - offset;
+            if d.abs() < 0.5 {
+                offset = t;
+                self.prompter_target = None;
+            } else {
+                offset += d * (dt * 7.0).min(1.0);
+            }
+            ui.ctx().request_repaint();
+        } else if self.prompter_on {
+            // Speed 1 to 10: about a line every four seconds to more than two lines a second.
+            offset += self.st.prompter_speed * size * 0.08 * dt;
+            ui.ctx().request_repaint();
+            read_on = true;
+        }
+        offset = offset.clamp(0.0, self.prompter_end);
+        let read_on = read_on && (offset - before).abs() > 0.01;
+        if self.prompter_on && self.prompter_target.is_none() && self.prompter_end > 0.0 && offset >= self.prompter_end - 0.5 {
+            // The end of the talk's notes.
+            self.prompter_on = false;
+        }
+
+        // The chosen colours: the script's background and text (dark on light at first, or Dark, or
+        // any pair picked beside Follow slides).
+        let rgb = |v: [u8; 3]| Color32::from_rgb(v[0], v[1], v[2]);
+        let (bg, fg) = (rgb(self.st.prompter_bg), rgb(self.st.prompter_fg));
+        let custom = (self.st.prompter_bg, self.st.prompter_fg) != crate::settings::PROMPTER_LIGHT;
+        let dark_bg = (bg.r() as u32 + bg.g() as u32 + bg.b() as u32) < 384;
+        let soft = if custom { Color32::from_rgba_unmultiplied(fg.r(), fg.g(), fg.b(), 150) } else { MUTED };
+        let here = if dark_bg { Color32::from_rgb(140, 200, 120) } else { LEAF_DARK };
+        ui.painter().rect_filled(Rect::from_min_max(rect.min, pos2(rect.right(), bar.top() - 2.0)), 8.0 * k, bg);
+        let texts: Vec<(String, Option<String>)> = (0..self.deck.frames.len()).map(|f| (self.deck.frames[f].title.clone(), self.prompter_text(f))).collect();
+        let mut marks: Vec<(usize, f32)> = vec![];
+        let mut child = ui.new_child(UiBuilder::new().max_rect(view));
+        child.set_clip_rect(view.intersect(ui.clip_rect()));
+        let out = ScrollArea::vertical()
+            .id_salt("prompter")
+            .auto_shrink([false, false])
+            .scroll_source(egui::scroll_area::ScrollSource::NONE)
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+            .vertical_scroll_offset(offset)
+            .show(&mut child, |ui| {
+                let top = ui.min_rect().top();
+                ui.add_space(lead);
+                for (f, (title, text)) in texts.iter().enumerate() {
+                    // A slide without a title of its own is called "Slide N" once.
+                    let name = title.trim();
+                    let plain = format!("Slide {}", f + 1);
+                    let head = if name.is_empty() || name == plain { plain } else { format!("{plain}  ·  {name}") };
+                    ui.label(RichText::new(head).size((size * 0.5).max(11.0)).strong().color(if f == frame { here } else { soft }));
+                    ui.add_space(size * 0.15);
+                    // The note's first line is what comes to the reading line, its heading just above.
+                    marks.push((f, ui.cursor().top() - top - lead));
+                    match text {
+                        Some(t) => {
+                            markdown_rows_in(ui, t, size, custom.then_some(fg));
+                        }
+                        None => {
+                            ui.label(RichText::new("No notes for this slide.").size((size * 0.6).max(11.0)).italics().color(soft));
+                        }
+                    }
+                    ui.add_space(size * 1.1);
+                }
+                ui.add_space((view.height() - read_y).max(0.0));
+            });
+        let first = self.prompter_marks.is_empty();
+        self.prompter_end = (out.content_size.y - out.inner_rect.height()).max(0.0);
+        self.prompter_offset = offset;
+        // Bring a slide's notes to the reading line, now that it is known where they are. The first
+        // time the script shows, it starts there at once.
+        if let Some(f) = self.prompter_seek.take() {
+            if let Some(&(_, y)) = marks.iter().find(|m| m.0 == f) {
+                let y = y.clamp(0.0, self.prompter_end);
+                if first {
+                    self.prompter_offset = y;
+                } else {
+                    self.prompter_target = Some(y);
+                }
+                ui.ctx().request_repaint();
+            } else {
+                self.prompter_seek = Some(f);
+            }
+        }
+        // The slide whose notes are at the reading line.
+        let reading = marks.iter().rev().find(|m| m.1 <= offset + line * 0.5).map(|m| m.0).unwrap_or(0);
+        self.prompter_marks = marks;
+        // Following the slides (on unless turned off): when the script, moving on by itself or by
+        // hand, reaches another slide's notes, that slide comes on show (its first step), for the
+        // audience too. The script stays where it is: it does not glide back to the slide.
+        let mut frame = frame;
+        if self.st.prompter_follow && read_on && reading != frame && self.prompter_target.is_none() && self.prompter_seek.is_none() {
+            if let Some(first) = self.deck.frames.get(reading).map(|f| f.first) {
+                self.prompter_frame = Some(reading);
+                self.goto(first);
+                frame = reading;
+            }
+        }
+
+        // The script fades in at the bottom and out at the top instead of being cut off.
+        let fade = (line * 1.2).min(view.height() * 0.2);
+        for (r, top_solid) in [(Rect::from_min_max(view.min, pos2(view.right(), view.top() + fade)), true), (Rect::from_min_max(pos2(view.left(), view.bottom() - fade), view.max), false)] {
+            let mut mesh = egui::Mesh::default();
+            let (a, b) = if top_solid { (bg, Color32::TRANSPARENT) } else { (Color32::TRANSPARENT, bg) };
+            mesh.colored_vertex(r.left_top(), a);
+            mesh.colored_vertex(r.right_top(), a);
+            mesh.colored_vertex(r.right_bottom(), b);
+            mesh.colored_vertex(r.left_bottom(), b);
+            mesh.add_triangle(0, 1, 2);
+            mesh.add_triangle(0, 2, 3);
+            ui.painter().add(Shape::mesh(mesh));
+        }
+        // The reading line: a soft band across, with a mark at each end.
+        let p = ui.painter().with_clip_rect(view.expand(8.0 * k));
+        let band = Rect::from_center_size(pos2(view.center().x, view.top() + read_y), vec2(view.width() + 12.0 * k, line * 1.05));
+        p.rect_filled(band, 4.0 * k, Color32::from_rgba_unmultiplied(255, 208, 64, 48));
+        for (x, dir) in [(band.left(), 1.0), (band.right(), -1.0)] {
+            let c = pos2(x, band.center().y);
+            let w = 7.0 * k * dir;
+            p.add(Shape::convex_polygon(vec![c + vec2(0.0, -6.0 * k), c + vec2(w, 0.0), c + vec2(0.0, 6.0 * k)], LEAF, Stroke::NONE));
+        }
+
+        // Controls: play or pause, back to this slide's notes, and the speed.
+        ui.painter().hline(bar.x_range(), bar.top(), Stroke::new(1.0, CARD_LINE));
+        let mut row = ui.new_child(UiBuilder::new().max_rect(bar).layout(Layout::left_to_right(Align::Center)));
+        row.spacing_mut().item_spacing.x = 6.0 * k;
+        let btn = (30.0 * k).clamp(24.0, 38.0);
+        let glyph = btn * 0.55;
+        let (icon, tip) = if self.prompter_on { (Icon::Pause, "Pause the teleprompter (K)") } else { (Icon::Play, "Play: the notes scroll by themselves (K)") };
+        if sized_button(&mut row, icon, self.prompter_on, tip, btn, glyph).clicked() {
+            if !self.prompter_on && self.prompter_offset >= self.prompter_end - 1.0 {
+                // At the end, play starts again from the slide on show.
+                self.prompter_seek = Some(frame);
+            }
+            self.prompter_on = !self.prompter_on;
+            self.prompter_target = None;
+        }
+        if sized_button(&mut row, Icon::First, false, "Back to the notes of the slide on show", btn, glyph).clicked() {
+            self.prompter_seek = Some(frame);
+        }
+        row.add_space(10.0 * k);
+        row.label(RichText::new("Speed").size((14.0 * k).max(11.0)).color(MUTED));
+        let mut speed = self.st.prompter_speed;
+        if sized_button(&mut row, Icon::Minus, false, "Slower ([)", btn * 0.8, glyph * 0.8).clicked() {
+            speed -= 0.5;
+        }
+        row.spacing_mut().slider_width = (110.0 * k).max(70.0);
+        row.add(Slider::new(&mut speed, 1.0..=10.0).step_by(0.5).show_value(false)).on_hover_text("How fast the notes scroll");
+        if sized_button(&mut row, Icon::Plus, false, "Faster (])", btn * 0.8, glyph * 0.8).clicked() {
+            speed += 0.5;
+        }
+        row.label(RichText::new(format!("{speed:.1}")).size((14.0 * k).max(11.0)).monospace().color(INK));
+        speed = speed.clamp(1.0, 10.0);
+        if speed != self.st.prompter_speed {
+            self.st.prompter_speed = speed;
+            self.save_layout();
+        }
+        row.add_space(10.0 * k);
+        let mut follow = self.st.prompter_follow;
+        if row.checkbox(&mut follow, RichText::new("Follow slides").size((14.0 * k).max(11.0))).on_hover_text("When the script reaches the next slide's notes, that slide comes on show, for the audience too").changed() {
+            self.st.prompter_follow = follow;
+            self.save_layout();
+        }
+        // Colours: Dark (light text on a dark background) and back, or a background and text colour
+        // of one's own. Remembered.
+        row.add_space(10.0 * k);
+        let small = (14.0 * k).max(11.0);
+        let is_dark = (self.st.prompter_bg, self.st.prompter_fg) == crate::settings::PROMPTER_DARK;
+        if row.selectable_label(is_dark, RichText::new("Dark").size(small)).on_hover_text("Light text on a dark background; click again for dark text on light").clicked() {
+            let (b, f) = if is_dark { crate::settings::PROMPTER_LIGHT } else { crate::settings::PROMPTER_DARK };
+            (self.st.prompter_bg, self.st.prompter_fg) = (b, f);
+            self.save_layout();
+        }
+        row.label(RichText::new("Background").size(small).color(MUTED));
+        let mut b = self.st.prompter_bg;
+        if egui::color_picker::color_edit_button_srgb(&mut row, &mut b).on_hover_text("The teleprompter's background colour").changed() {
+            self.st.prompter_bg = b;
+            self.save_layout();
+        }
+        row.label(RichText::new("Text").size(small).color(MUTED));
+        let mut f = self.st.prompter_fg;
+        if egui::color_picker::color_edit_button_srgb(&mut row, &mut f).on_hover_text("The teleprompter's text colour").changed() {
+            self.st.prompter_fg = f;
+            self.save_layout();
+        }
+        // Which slide's notes are being read, when it is not the slide on show.
+        if reading != frame && !self.prompter_marks.is_empty() {
+            row.add_space(10.0 * k);
+            row.label(RichText::new(format!("Reading the notes of slide {}", reading + 1)).size((14.0 * k).max(11.0)).color(MUTED));
         }
     }
 
@@ -1630,7 +1951,42 @@ fn utc_offset() -> i64 {
 /// Small Markdown renderer for notes. Every line is laid out here at the
 /// width available, so text wraps inside its panel and can never push the panel wider.
 pub fn markdown(ui: &mut Ui, src: &str, size: f32) {
+    markdown_rows(ui, src, size);
+}
+
+/// The reading guide's mark on one line of the notes: a soft band behind the line, with a bar at its
+/// left edge so the eye finds it at a glance.
+pub fn guide_mark(row: Rect, s: f32) -> Vec<Shape> {
+    let k = s.max(0.6);
+    let band = row.expand2(vec2(8.0 * k, 3.0 * k));
+    let bar = Rect::from_min_max(pos2(band.left() - 2.0 * k, band.top()), pos2(band.left() + 3.0 * k, band.bottom()));
+    vec![
+        Shape::rect_filled(band, 4.0 * k, Color32::from_rgba_unmultiplied(255, 208, 64, 92)),
+        Shape::rect_filled(bar, 2.0 * k, LEAF),
+    ]
+}
+
+/// Shows notes written in markdown, as `markdown` does, and gives back where each line of text went
+/// on screen, top to bottom (a wrapped paragraph gives one per line), for the reading guide.
+pub fn markdown_rows(ui: &mut Ui, src: &str, size: f32) -> Vec<Rect> {
+    markdown_rows_in(ui, src, size, None)
+}
+
+/// As `markdown_rows`, with every word in the colour `ink` when one is given (the teleprompter's
+/// chosen text colour) instead of the usual dark grey, black and green.
+pub fn markdown_rows_in(ui: &mut Ui, src: &str, size: f32, ink: Option<Color32>) -> Vec<Rect> {
     use egui::text::{LayoutJob, TextFormat};
+    let text = ink.unwrap_or(Color32::from_rgb(35, 35, 35));
+    let bold = ink.unwrap_or(Color32::BLACK);
+    let head_color = ink.unwrap_or(LEAF_DARK);
+    let code_bg = ink.map(|c| Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), 40)).unwrap_or(Color32::from_gray(218));
+    let mut rows: Vec<Rect> = vec![];
+    let placed = |rows: &mut Vec<Rect>, at: Rect, g: &egui::Galley, from_x: f32| {
+        for r in g.rows.iter().filter(|r| !r.row.glyphs.is_empty()) {
+            let rect = r.rect().translate(at.min.to_vec2());
+            rows.push(Rect::from_min_max(pos2(from_x.min(rect.left()), rect.top()), rect.max));
+        }
+    };
     let width = ui.available_width().max(40.0);
     let strong_font = FontId::new(size, FontFamily::Name("strong".into()));
     let mut in_code = false;
@@ -1643,10 +1999,13 @@ pub fn markdown(ui: &mut Ui, src: &str, size: f32) {
         if in_code {
             let mut job = LayoutJob::default();
             job.wrap.max_width = width;
-            let f = TextFormat { font_id: FontId::monospace(size * 0.86), color: Color32::from_rgb(35, 35, 35), ..Default::default() };
+            let f = TextFormat { font_id: FontId::monospace(size * 0.86), color: text, ..Default::default() };
             job.append(if line.is_empty() { " " } else { line }, 0.0, f);
             let g = ui.fonts_mut(|f| f.layout_job(job));
-            ui.add(Label::new(g).selectable(true));
+            let at = ui.add(Label::new(g.clone()).selectable(true)).rect;
+            if !line.trim().is_empty() {
+                placed(&mut rows, at, &g, at.left());
+            }
             continue;
         }
         if line.trim().is_empty() {
@@ -1668,11 +2027,11 @@ pub fn markdown(ui: &mut Ui, src: &str, size: f32) {
         };
         let mut job = LayoutJob::default();
         job.wrap.max_width = (width - indent).max(20.0);
-        let base = TextFormat { font_id: FontId::proportional(sz), color: Color32::from_rgb(35, 35, 35), ..Default::default() };
-        let strong = TextFormat { color: Color32::BLACK, font_id: FontId::new(sz, strong_font.family.clone()), ..base.clone() };
+        let base = TextFormat { font_id: FontId::proportional(sz), color: text, ..Default::default() };
+        let strong = TextFormat { color: bold, font_id: FontId::new(sz, strong_font.family.clone()), ..base.clone() };
         let em = TextFormat { italics: true, ..base.clone() };
-        let code = TextFormat { font_id: FontId::monospace(sz * 0.9), background: Color32::from_gray(218), ..base.clone() };
-        let head = TextFormat { color: LEAF_DARK, font_id: FontId::new(sz, strong_font.family.clone()), ..base.clone() };
+        let code = TextFormat { font_id: FontId::monospace(sz * 0.9), background: code_bg, ..base.clone() };
+        let head = TextFormat { color: head_color, font_id: FontId::new(sz, strong_font.family.clone()), ..base.clone() };
         // The line's pieces with their style: 0 plain (or heading), 1 bold, 2 code, 3 emphasis.
         let formats = [if heading { head.clone() } else { base.clone() }, strong.clone(), code.clone(), em.clone()];
         let mut segs: Vec<(&str, usize)> = vec![];
@@ -1698,28 +2057,35 @@ pub fn markdown(ui: &mut Ui, src: &str, size: f32) {
             }
         }
         if crate::bidi::has_rtl(body) {
-            rtl_paragraph(ui, &segs, &formats, width, indent, sz);
+            rows.extend(rtl_paragraph(ui, &segs, &formats, width, indent, sz));
             continue;
         }
         for (t, s) in segs {
             job.append(t, 0.0, formats[s].clone());
         }
         let galley = ui.fonts_mut(|f| f.layout_job(job));
-        ui.horizontal_top(|ui| {
-            ui.spacing_mut().item_spacing.x = 0.0;
-            if indent > 0.0 {
-                let (r, _) = ui.allocate_exact_size(vec2(indent, sz * 1.2), Sense::hover());
-                ui.painter().circle_filled(pos2(r.left() + indent * 0.45, r.top() + sz * 0.62), (sz * 0.11).max(2.0), LEAF_DARK);
-            }
-            ui.add(Label::new(galley).selectable(true));
-        });
+        let start = ui.cursor().left();
+        let at = ui
+            .horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                if indent > 0.0 {
+                    let (r, _) = ui.allocate_exact_size(vec2(indent, sz * 1.2), Sense::hover());
+                    ui.painter().circle_filled(pos2(r.left() + indent * 0.45, r.top() + sz * 0.62), (sz * 0.11).max(2.0), LEAF_DARK);
+                }
+                ui.add(Label::new(galley.clone()).selectable(true)).rect
+            })
+            .inner;
+        placed(&mut rows, at, &galley, start);
     }
+    rows
 }
 
 /// A paragraph with Arabic, Hebrew or another right-to-left script: wrapped, then each line put in the
 /// order it is read, and aligned to the right when the paragraph starts in such a script.
-fn rtl_paragraph(ui: &mut Ui, segs: &[(&str, usize)], formats: &[egui::text::TextFormat], width: f32, indent: f32, sz: f32) {
+/// Gives back where each of its lines went on screen.
+fn rtl_paragraph(ui: &mut Ui, segs: &[(&str, usize)], formats: &[egui::text::TextFormat], width: f32, indent: f32, sz: f32) -> Vec<Rect> {
     use egui::text::LayoutJob;
+    let mut rows = vec![];
     let plain: String = segs.iter().map(|s| s.0).collect();
     let rtl = crate::bidi::starts_rtl(&plain);
     let chars: Vec<(char, usize)> = segs.iter().flat_map(|(t, s)| t.chars().map(move |c| (c, *s))).collect();
@@ -1732,7 +2098,7 @@ fn rtl_paragraph(ui: &mut Ui, segs: &[(&str, usize)], formats: &[egui::text::Tex
         }
         let galley = ui.fonts_mut(|f| f.layout_job(job));
         let layout = if rtl { Layout::right_to_left(Align::TOP) } else { Layout::left_to_right(Align::TOP) };
-        ui.allocate_ui_with_layout(vec2(width, galley.size().y), layout, |ui| {
+        let at = ui.allocate_ui_with_layout(vec2(width, galley.size().y), layout, |ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
             if indent > 0.0 {
                 let (r, _) = ui.allocate_exact_size(vec2(indent, sz * 1.2), Sense::hover());
@@ -1743,7 +2109,9 @@ fn rtl_paragraph(ui: &mut Ui, segs: &[(&str, usize)], formats: &[egui::text::Tex
             }
             ui.add(Label::new(galley).selectable(false));
         });
+        rows.push(at.response.rect);
     }
+    rows
 }
 
 pub fn engine_combo(ui: &mut Ui, e: &mut Engine) {

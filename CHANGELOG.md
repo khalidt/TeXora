@@ -1,6 +1,20 @@
 # Changelog
 
-All notable changes to TeXora. The newest version is first. Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH, where MINOR adds features that keep existing documents working and PATCH only fixes.
+## 1.8.0
+
+### New
+
+- **Reading guide for the notes.** **Down** marks the next line of the speaker notes and **Up** the one before, with a soft band and a bar at its left, so you can follow where you are while you talk. It works on written notes and on Beamer notes pages, where it marks the note's own lines and skips the header and the small picture of the slide. It never changes the slide, keeps its place through a slide's overlay steps, and starts afresh on the next slide. In the overview, Down and Up still move through the slides. Both keys can be changed in **Settings > Keyboard shortcuts**.
+- **Teleprompter.** A view of its own, from its button beside the presenter's or **View > Teleprompter**: the whole talk's notes as one script in large text that scrolls smoothly and continuously by itself, with the current and next slide beside it and the sections and timer below. **Play/Pause** (**K**) starts and stops it, and **Speed** (1 to 10, or **[** and **]**) matches your reading pace and is remembered. A band marks the reading line. When the script reaches the next slide's notes, that slide comes on show, for the audience too (**Follow slides**, on at first); moving to another slide brings its notes to the reading line. **Dark** shows light text on a dark background, and **Background** and **Text** pick any colours. The wheel, or Down and Up, move it by hand; Cmd/Ctrl with the wheel sets the text size. Notes come from the source, the `.note.md` file or the text of Beamer notes pages. `--view teleprompter` opens it.
+
+### Changed
+
+- **Right**, **Left**, **Space**, **Page Up** and **Page Down** move through the slides; **Down** and **Up** now move the reading guide. Shortcuts you saved before move over once; a key you gave to something else stays yours.
+
+### Fixed
+
+- After writing a note in the presenter, the notes area showed the plain text from then on, even once the slides had rebuilt with the note on their notes page. It now shows the notes page again as soon as the rebuild is done, with the new note on it.
+- `\par` in a `\note` starts a new paragraph in the notes area instead of showing as text.
 
 ## 1.7.0
 

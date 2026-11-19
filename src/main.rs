@@ -64,6 +64,7 @@ impl eframe::App for Root {
                 app::View::Start => a.start_ui(ui),
                 app::View::Presenter => a.presenter_ui(ui),
                 app::View::Split => a.split_ui(ui),
+                app::View::Teleprompter => a.teleprompter_ui(ui),
                 app::View::Overview => a.overview_ui(ui),
                 app::View::Studio => a.studio_ui(ui),
             });
@@ -112,7 +113,7 @@ Usage: TeXora [file.pdf | file.tex] [options]
 
 For testing and screenshots:
   --screenshot <file.png>  draw about 120 frames, save a picture of the window and exit
-  --view <name>            start on: presenter, split, swap, overview, studio,
+  --view <name>            start on: presenter, teleprompter, split, swap, overview, studio,
                            analytics, settings, outline, search, accessibility,
                            audience, textnotes
   --goto <n>               start on page position n

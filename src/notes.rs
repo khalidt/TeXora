@@ -214,6 +214,13 @@ pub fn latex_to_md(s: &str) -> String {
             i = skip_break(s, i + 2);
             continue;
         }
+        // \par starts a new paragraph, as a blank line does (not \paragraph or \parbox).
+        if rest.starts_with("\\par") && !rest[4..].starts_with(|c: char| c.is_ascii_alphabetic()) {
+            trim_end_in_place(&mut out);
+            out.push_str("\n\n");
+            i = skip_spaces(s, i + 4);
+            continue;
+        }
         for (cmd, text) in [("\\textbackslash{}", "\\"), ("\\textasciitilde{}", "~"), ("\\textasciicircum{}", "^")] {
             if rest.starts_with(cmd) {
                 out.push_str(text);
@@ -817,5 +824,11 @@ mod tests {
     #[test]
     fn hyperlink_keeps_visible_text() {
         assert_eq!(latex_to_md("See \\hyperlink{x}{the backup}."), "See the backup.");
+    }
+
+    #[test]
+    fn par_starts_a_new_paragraph() {
+        assert_eq!(latex_to_md("First.\\par Second.\\par\nThird."), "First.\n\nSecond.\n\nThird.");
+        assert_eq!(latex_to_md("\\parbox{2cm}{x} and \\paragraph{y}"), "\\parbox{2cm}{x} and \\paragraph{y}");
     }
 }

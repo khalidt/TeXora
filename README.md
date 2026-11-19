@@ -21,7 +21,7 @@
 
 
 <p align="center">
-  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.7: Home, the template picker with accessible slides and tagged documents, presenter view with the timer, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="400">
+  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.8: Home, the template picker with accessible slides and tagged documents, presenter view with the timer and the reading guide on the notes, the teleprompter scrolling the notes, light and dark, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="400">
   <img src="screenshots/media-demo.gif" alt="An MP4 video and an animated GIF playing inside a slide, then two animations made with the LaTeX animate package" width="400">
 </p>
 
@@ -115,8 +115,8 @@ This is needed only once.
    recent file, or drop a file on the window. **Try the sample lecture** opens a complete example talk.
 3. A `.tex` file is compiled on opening. Edit it in the **LaTeX studio** (Cmd/Ctrl+E) or in another
    editor.
-4. Press **F5** to open the audience window, then move through the slides with the arrow keys or
-   **Space**.
+4. Press **F5** to open the audience window, then move through the slides with the **Right** and
+   **Left** arrow keys or **Space**. **Down** and **Up** move a reading guide along the notes.
 
 Each presentation opens in its own tab, with its own position, ink and timer. Every button shows its
 name and shortcut on hover.
@@ -268,6 +268,20 @@ These buttons open a sidebar on the left; the same button or the cross closes it
 Notes come from Beamer notes pages (`\setbeameroption{show notes on second screen=right}`), from
 `\note{...}` in the source, from a `.pdfpc` file, or from a Markdown notes file beside the
 presentation. **Edit notes** (**E**) edits them in place; **Cmd/Ctrl+Enter** saves and **Esc** cancels.
+
+**Reading guide**: **Down** marks the next line of the notes and **Up** the one before, so you can
+follow where you are while you talk. It works on Beamer notes pages too, where it skips the header
+and the small picture of the slide. It never changes the slide; a new slide starts without it.
+
+**Teleprompter**: the button beside the presenter's, or **View > Teleprompter**, shows the whole
+talk's notes as one script in large text that scrolls smoothly by itself, with the current and next
+slide beside it. **Play/Pause** (**K**) starts and stops the scrolling, and **Speed** (or **[** and
+**]**) sets how fast it goes, to match your reading pace. A band marks the reading line. When the
+script reaches the next slide's notes, that slide comes on show, for the audience too; turn **Follow
+slides** off to move the slides yourself. Moving to another slide brings its notes to the reading line.
+**Dark** shows light text on a dark background, and **Background** and **Text** pick any colours.
+The wheel, or **Down** and **Up**, move the script by hand, and Cmd/Ctrl with the wheel changes the
+text size.
 
 <details>
 <summary>Where notes are saved, formatting and languages</summary>
@@ -493,7 +507,9 @@ document still compiles in other LaTeX editors.
 ```
 
 The options are those of `\includegraphics`. PNG, JPEG, PDF and EPS pictures go straight to
-`\includegraphics`, so `\includeimage` can be used for every picture.
+`\includegraphics`, so `\includeimage` can be used for every picture. A GIF shown with `\includeimage`
+is a still picture, its first frame; to play it in the slide, use `\includevideo{loop.gif}` from
+`texoravideo` instead.
 
 <details>
 <summary>How it works, other editors, converters and safety</summary>

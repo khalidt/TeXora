@@ -32,6 +32,8 @@ pub enum Icon {
     Grid,
     Code,
     Presenter,
+    /// The teleprompter: lines of text in a frame, with an arrow for the scrolling.
+    Prompter,
     LargeSlide,
     Split,
     Windows,
@@ -167,6 +169,14 @@ pub fn paint(p: &Painter, r: Rect, icon: Icon, c: Color32) {
             line(&[(15.0, 12.0), (21.0, 12.0)]);
             line(&[(6.0, 9.0), (12.0, 9.0)]);
             line(&[(6.0, 13.0), (12.0, 13.0)]);
+        }
+        Icon::Prompter => {
+            rect(3.0, 4.5, 21.0, 19.5, 1.5);
+            line(&[(6.5, 9.0), (13.5, 9.0)]);
+            line(&[(6.5, 12.0), (14.5, 12.0)]);
+            line(&[(6.5, 15.0), (11.5, 15.0)]);
+            line(&[(17.5, 16.5), (17.5, 9.5)]);
+            tri(&[(17.5, 7.0), (15.3, 10.0), (19.7, 10.0)]);
         }
         Icon::LargeSlide => {
             rect(3.0, 5.0, 21.0, 19.0, 1.5);
