@@ -6,7 +6,7 @@
 
 <p align="center">
   A presenter for <span> L<sup>A</sup>T<sub>E</sub>X </span> Beamer and PDF slides:<br>
-  private notes, audience screen, live LaTeX editor, rehearsal analytics, animation and video.<br>
+  private notes, a teleprompter, audience screen, live LaTeX editor, rehearsal analytics, animation and video.<br>
   macOS, Windows and Linux.
 </p>
 
@@ -14,15 +14,16 @@
   <a href="https://github.com/khalidt/TeXora/releases/latest"><b>Download</b></a> ·
   <a href="#features">Features</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="#guide">Guide</a> ·
-  <a href="#keyboard-shortcuts">Shortcuts</a> ·
-  <a href="#building-from-source">Build</a>
+  <a href="#presenting">Presenting</a> ·
+  <a href="#teleprompter">Teleprompter</a> ·
+  <a href="#writing-slides-in-latex">LaTeX</a> ·
+  <a href="#animations-videos-and-pictures">Media</a> ·
+  <a href="#accessibility">Accessibility</a> ·
+  <a href="#keyboard-shortcuts">Shortcuts</a>
 </p>
 
-
 <p align="center">
-  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.8: Home, the template picker with accessible slides and tagged documents, presenter view with the timer and the reading guide on the notes, the teleprompter scrolling the notes, light and dark, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="400">
-  <img src="screenshots/media-demo.gif" alt="An MP4 video and an animated GIF playing inside a slide, then two animations made with the LaTeX animate package" width="400">
+  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.8: Home, the template picker with accessible slides and tagged documents, presenter view with the timer and the reading guide on the notes, the teleprompter scrolling the notes, light and dark, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="760">
 </p>
 
 TeXora shows the speaker the notes, the current and next slide and the time, while the audience sees
@@ -31,20 +32,22 @@ can be edited in the built-in LaTeX studio or in any other editor.
 
 ## Features
 
-|                          |                                                                                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Presenter view**       | Notes, current and next slide, overlay step, elapsed time, pace against a set duration, and a clock. Large-slide and split views.              |
-| **Audience window**      | Fullscreen on a projector or second display (F5). Black screen, whiteboard and freeze.                                                         |
-| **LaTeX studio**         | Source editor with code folding and block guides, beside a slide and notes preview; errors and warnings listed apart; SyncTeX links. |
-| **LaTeX Beamer**         | Compiles with pdfLaTeX, XeLaTeX or LuaLaTeX, chosen from `% !TEX program` or the packages used. Rebuilds when the file is saved in any editor. |
-| **Required packages**    | Lists every package, theme and program a file needs, with how to install the missing ones.                                                     |
-| **Speaker notes**        | From Beamer notes pages, `\note{}`, `.pdfpc` files or a Markdown file; editable in the app, in any language.                                   |
-| **Animations and video** | `animate` package animations, GIFs and video clips play inside the slide ([see it](#animations)); video uses an installed ffmpeg or VLC. |
-| **Modern pictures**      | AVIF, WebP, JPEG XL, GIF, TIFF, BMP (built-in decoders) and HEIC/HEIF pictures in slides with `\includeimage`; the document still compiles in other LaTeX editors ([how](#pictures)). |
-| **Drawing and pointing** | Pen, highlighter, eraser, laser pointer and zoom to an area. Ink is kept per slide.                                                            |
-| **Navigation**           | Contents, bookmarks, question marks and full-text search in a sidebar. Tabs for several presentations.                                         |
-| **Analytics**            | Time on each slide for every rehearsal, compared with the previous one.                                                                        |
-| **Tools**                | Configurable shortcuts, a system check, a command-line interface and update notices.                                                           |
+|                          |                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Presenter view**       | Notes, current and next slide, overlay step, elapsed time, pace against a set duration, and a clock. Large-slide and split views.                |
+| **Audience window**      | Fullscreen on a projector or second display (F5). Black screen, whiteboard and freeze.                                                           |
+| **Speaker notes**        | From Beamer notes pages, `\note{}`, `.pdfpc` files or a Markdown file; edited in the app, in any language. A reading guide marks your line (Down/Up). |
+| **Teleprompter**         | The whole talk's notes as one script that scrolls by itself: play and pause, speed, slides that follow the script, dark or any colours ([see it](#teleprompter)). |
+| **LaTeX studio**         | Source editor with code folding and block guides, beside a slide and notes preview; errors and warnings listed apart; SyncTeX links.             |
+| **LaTeX Beamer**         | Compiles with pdfLaTeX, XeLaTeX or LuaLaTeX, chosen from `% !TEX program` or the packages used. Rebuilds when the file is saved in any editor.   |
+| **Templates**            | Fifteen ready-to-edit files: themes, animated and media slides, accessible slides and tagged documents ([list](#quick-start)).                   |
+| **Animations and video** | `animate` package animations, GIFs and video clips play inside the slide ([see it](#animations)); video uses an installed ffmpeg or VLC.        |
+| **Modern pictures**      | AVIF, WebP, JPEG XL, GIF, TIFF, BMP (built-in decoders) and HEIC/HEIF pictures with `\includeimage`; still compiles in other editors ([how](#pictures)). |
+| **Accessibility**        | A source check and a WCAG 2.2 checker that point to the line or page of each issue, and tagged PDF copies of Beamer slides ([more](#accessibility)). |
+| **Drawing and pointing** | Pen, highlighter, eraser, laser pointer and zoom to an area. Ink is kept per slide.                                                              |
+| **Navigation**           | Contents, bookmarks, question marks and full-text search in a sidebar. Tabs for several presentations.                                           |
+| **Rehearsal analytics**  | Time on each slide for every rehearsal, compared with the previous one.                                                                          |
+| **Tools**                | Required-package check, configurable shortcuts, a system check, a command-line interface and update notices.                                     |
 
 ## Download and install
 
@@ -69,13 +72,13 @@ Each system has an installer and a portable package in the [latest release](http
 
 **Requirements.** Presenting PDF files needs nothing else: each package includes the PDF engine.
 
-| To                        | Install                                                                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Presenting `PDF` files    | nothing                                                                                                                           |
-| Compile `.tex` files      | A TeX distribution: **MacTeX** (macOS), **MiKTeX** or TeX Live (Windows), **TeX Live** (Linux)                                    |
-| Play MP4 and other videos | **ffmpeg** (plays inside the slide, with sound through ffplay) or **VLC** (plays in its own window). Optional; GIFs need neither. |
-| Use AVIF, WebP, JPEG XL, GIF, TIFF or BMP pictures | Nothing: TeXora decodes them itself. |
-| Use HEIC/HEIF pictures | Nothing on macOS (built-in `sips`). Elsewhere **libheif** (`heif-dec`), **ImageMagick** or ffmpeg. |
+| To                                                 | Install                                                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Present `PDF` files                                | nothing                                                                                                                           |
+| Compile `.tex` files                               | A TeX distribution: **MacTeX** (macOS), **MiKTeX** or TeX Live (Windows), **TeX Live** (Linux)                                    |
+| Play MP4 and other videos                          | **ffmpeg** (plays inside the slide, with sound through ffplay) or **VLC** (plays in its own window). Optional; GIFs need neither. |
+| Use AVIF, WebP, JPEG XL, GIF, TIFF or BMP pictures | Nothing: TeXora decodes them itself.                                                                                              |
+| Use HEIC/HEIF pictures                             | Nothing on macOS (built-in `sips`). Elsewhere **libheif** (`heif-dec`), **ImageMagick** or ffmpeg.                                |
 
 Every release file is listed with its checksum in `SHA256SUMS.txt`; `VALIDATION.txt` records how each
 file was tested.
@@ -135,12 +138,12 @@ and tagged documents to test in any LaTeX editor.
 | Flipbook                                                    | The frames of a GIF and charts that grow                                                   |
 | Media Studio                                                | A video clip and charts that draw themselves                                               |
 | Video Guide                                                 | `\includevideo` explained slide by slide, with a video and a GIF playing inside the slides |
-| Accessible Lecture                                          | High contrast; alt text, decoration, described drawings, tables, links, maths, language     |
-| Accessible Media                                            | A video and a GIF with alt text, a caption, a transcript in the slides and one in a file    |
-| Accessible Motion                                           | Described animations with pause buttons, click-by-click steps, a one-line still version     |
-| Tagged Slides                                               | Slides tagged directly by LaTeX with the `ltx-talk` class (TeX Live 2026)                   |
-| Tagged Article (not slides)                                 | An article LaTeX tags for screen readers, with nothing from TeXora: any editor               |
-| Media Handout (not slides)                                  | A tagged handout with a video, a GIF, a picture and an animation, packages beside it         |
+| Accessible Lecture                                          | High contrast; alt text, decoration, described drawings, tables, links, maths, language    |
+| Accessible Media                                            | A video and a GIF with alt text, a caption, a transcript in the slides and one in a file   |
+| Accessible Motion                                           | Described animations with pause buttons, click-by-click steps, a one-line still version    |
+| Tagged Slides                                               | Slides tagged directly by LaTeX with the `ltx-talk` class (TeX Live 2026)                  |
+| Tagged Article (not slides)                                 | An article LaTeX tags for screen readers, with nothing from TeXora: any editor             |
+| Media Handout (not slides)                                  | A tagged handout with a video, a GIF, a picture and an animation, packages beside it       |
 
 The templates with pictures and clips save them in a `media` folder beside the new file. The
 accessible ones follow their own advice: **Tools > Check accessibility** finds nothing to fix in them.
@@ -149,7 +152,7 @@ folder compiles in Overleaf, TeXstudio or VS Code as it is.
 
 </details>
 
-## Guide
+## Presenting
 
 ### Presenter screen
 
@@ -176,6 +179,71 @@ Drag the dividers to resize panels; **View > Fit all panels automatically** rese
 
 </details>
 
+### Audience window
+
+- **F5** opens the audience window, fullscreen on a second display; on a single display, **F11**
+  makes it fullscreen.
+- **B** blanks the screen, **W** shows a whiteboard, **F** freezes the audience view.
+- Ink, the laser pointer and zoom appear on the audience screen as they are used.
+
+### Speaker notes
+
+Notes come from Beamer notes pages (`\setbeameroption{show notes on second screen=right}`), from
+`\note{...}` in the source, from a `.pdfpc` file, or from a Markdown notes file beside the
+presentation. **Edit notes** (**E**) edits them in place; **Cmd/Ctrl+Enter** saves and **Esc** cancels.
+
+**Reading guide**: **Down** marks the next line of the notes and **Up** the one before, so you can
+follow where you are while you talk. It works on Beamer notes pages too, where it skips the header
+and the small picture of the slide. It never changes the slide; a new slide starts without it.
+
+<details>
+<summary>Where notes are saved, formatting and languages</summary>
+<br>
+
+| Opened file          | Notes saved in                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `Lecture.pdf`        | `Lecture.note.md` in the same folder                                                                                      |
+| `Thesis defense.tex` | `Thesis defense.tex`, as `\note{...}` in each frame (or `Thesis defense.note.md` with **Also save in the .tex file** off) |
+
+- **PDF**: keep the `.note.md` file with the PDF when moving or sharing it. Each slide has a
+  `## Slide N` heading; the file can also be written in any text editor. Files named
+  `Lecture.notes.md` by earlier versions are still read and renamed on the next save.
+- **LaTeX**: the source is the single place for notes, so the presenter and the studio always agree.
+  A note saved in the presenter is written into the frame's `\note{...}`, shows at once, and the
+  slides rebuild. **Settings > Speaker notes** shows where the current notes are stored.
+- **Formatting**: Markdown `**bold**`, `*emphasis*`, `- lists` and `# headings`; in a `.tex` file
+  these become `\textbf`, `\emph` and lists. Clearing all text removes the slide's note.
+- **Languages**: any language and emoji, using the computer's fonts. Arabic and Hebrew are laid out
+  right to left while typing and when shown. Notes are saved as UTF-8; UTF-16 and older encodings are
+  read.
+
+</details>
+
+### Teleprompter
+
+<p align="center">
+  <img src="screenshots/teleprompter.gif" alt="The teleprompter view: the talk's notes scroll by themselves past a reading line, the current slide moves on when the script reaches the next slide's notes, and the view switches to light text on a dark background" width="760"><br>
+  <sub>The script scrolls by itself, the slide follows it, and <b>Dark</b> switches to light text on a dark background.</sub>
+</p>
+
+The teleprompter shows the whole talk's notes as one script in large text that scrolls smoothly by
+itself, with the current and next slide beside it and the timer and sections below. Open it with its
+button beside the presenter's (<img src="screenshots/icons/teleprompter.png" width="20" alt="Teleprompter">),
+with **View > Teleprompter**, or with **K**, which also starts it.
+
+| Control           | What it does                                                                                              | Key       |
+| ----------------- | --------------------------------------------------------------------------------------------------------- | --------- |
+| **Play / Pause**  | Starts and stops the scrolling                                                                            | K         |
+| **Back**          | Brings the notes of the slide on show back to the reading line                                            |           |
+| **Speed**         | 1 to 10, to match your reading pace; remembered                                                           | [ and ]   |
+| **Follow slides** | When the script reaches the next slide's notes, that slide comes on show, for the audience too (on at first) |           |
+| **Dark**          | Light text on a dark background; click again for dark text on light                                       |           |
+| **Background**, **Text** | Pick any colours; remembered                                                                       |           |
+
+A band marks the reading line. Moving to another slide brings its notes to the reading line. The
+wheel, or **Down** and **Up**, move the script by hand, and Cmd/Ctrl with the wheel changes the text
+size. The notes come from the source, the `.note.md` file or the text of Beamer notes pages.
+
 ### Toolbar
 
 The second row of buttons acts on the open presentation: views, the audience screen, notes, drawing,
@@ -187,13 +255,14 @@ zoom and navigation.
 
 **Views**
 
-| Button                                                                     | Name                  | Action                                            | Key        |
-|:--------------------------------------------------------------------------:| --------------------- | ------------------------------------------------- | ---------- |
-| <img src="screenshots/icons/presenter.png" width="24" alt="Presenter">     | Presenter             | Notes with the current and next slide             |            |
-| <img src="screenshots/icons/large-slide.png" width="24" alt="Large slide"> | Large slide           | A large current slide with notes beside it        | N          |
-| <img src="screenshots/icons/split.png" width="24" alt="Split">             | Slide and notes split | Slide and notes side by side, with the next slide | S          |
-| <img src="screenshots/icons/overview.png" width="24" alt="Overview">       | Slide overview        | Every slide at a glance; click one to go there    | O          |
-| <img src="screenshots/icons/studio.png" width="24" alt="LaTeX studio">     | LaTeX studio          | Edit the `.tex` source beside the slide           | Cmd/Ctrl+E |
+| Button                                                                       | Name                  | Action                                            | Key        |
+|:----------------------------------------------------------------------------:| --------------------- | ------------------------------------------------- | ---------- |
+| <img src="screenshots/icons/presenter.png" width="24" alt="Presenter">       | Presenter             | Notes with the current and next slide             |            |
+| <img src="screenshots/icons/teleprompter.png" width="24" alt="Teleprompter"> | Teleprompter          | The notes as a script that scrolls by itself      | K          |
+| <img src="screenshots/icons/large-slide.png" width="24" alt="Large slide">   | Large slide           | A large current slide with notes beside it        | N          |
+| <img src="screenshots/icons/split.png" width="24" alt="Split">               | Slide and notes split | Slide and notes side by side, with the next slide | S          |
+| <img src="screenshots/icons/overview.png" width="24" alt="Overview">         | Slide overview        | Every slide at a glance; click one to go there    | O          |
+| <img src="screenshots/icons/studio.png" width="24" alt="LaTeX studio">       | LaTeX studio          | Edit the `.tex` source beside the slide           | Cmd/Ctrl+E |
 
 **Audience screen**
 
@@ -263,72 +332,30 @@ These buttons open a sidebar on the left; the same button or the cross closes it
 
 </details>
 
-### Speaker notes
+### Contents, analytics and settings
 
-Notes come from Beamer notes pages (`\setbeameroption{show notes on second screen=right}`), from
-`\note{...}` in the source, from a `.pdfpc` file, or from a Markdown notes file beside the
-presentation. **Edit notes** (**E**) edits them in place; **Cmd/Ctrl+Enter** saves and **Esc** cancels.
-
-**Reading guide**: **Down** marks the next line of the notes and **Up** the one before, so you can
-follow where you are while you talk. It works on Beamer notes pages too, where it skips the header
-and the small picture of the slide. It never changes the slide; a new slide starts without it.
-
-**Teleprompter**: the button beside the presenter's, or **View > Teleprompter**, shows the whole
-talk's notes as one script in large text that scrolls smoothly by itself, with the current and next
-slide beside it. **Play/Pause** (**K**) starts and stops the scrolling, and **Speed** (or **[** and
-**]**) sets how fast it goes, to match your reading pace. A band marks the reading line. When the
-script reaches the next slide's notes, that slide comes on show, for the audience too; turn **Follow
-slides** off to move the slides yourself. Moving to another slide brings its notes to the reading line.
-**Dark** shows light text on a dark background, and **Background** and **Text** pick any colours.
-The wheel, or **Down** and **Up**, move the script by hand, and Cmd/Ctrl with the wheel changes the
-text size.
+- **Contents** (**T**) lists the talk's sections in colour, with bookmarks and questions; **Back to
+  where I was** returns to the previous position.
+- **Analytics** (**Y**) times every rehearsal slide by slide, compares it with the previous run and
+  exports CSV.
+- **Settings** covers text size, the LaTeX engine, required packages, video, notes, updates and every
+  keyboard shortcut.
+- The **?** menu has **Documentation**, **System check**, **Command-line tool**, **Keyboard
+  shortcuts**, **Check for updates** and **About TeXora**.
 
 <details>
-<summary>Where notes are saved, formatting and languages</summary>
+<summary>Updates</summary>
 <br>
 
-| Opened file          | Notes saved in                                                                                                            |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `Lecture.pdf`        | `Lecture.note.md` in the same folder                                                                                      |
-| `Thesis defense.tex` | `Thesis defense.tex`, as `\note{...}` in each frame (or `Thesis defense.note.md` with **Also save in the .tex file** off) |
-
-- **PDF**: keep the `.note.md` file with the PDF when moving or sharing it. Each slide has a
-  `## Slide N` heading; the file can also be written in any text editor. Files named
-  `Lecture.notes.md` by earlier versions are still read and renamed on the next save.
-- **LaTeX**: the source is the single place for notes, so the presenter and the studio always agree.
-  A note saved in the presenter is written into the frame's `\note{...}`, shows at once, and the
-  slides rebuild. **Settings > Speaker notes** shows where the current notes are stored.
-- **Formatting**: Markdown `**bold**`, `*emphasis*`, `- lists` and `# headings`; in a `.tex` file
-  these become `\textbf`, `\emph` and lists. Clearing all text removes the slide's note.
-- **Languages**: any language and emoji, using the computer's fonts. Arabic and Hebrew are laid out
-  right to left while typing and when shown. Notes are saved as UTF-8; UTF-16 and older encodings are
-  read.
+When a new version is published, a notice appears in the lower right corner with **See what's new**,
+**Later** and **Skip this version**, and a dot appears on the **?** button. The update box links the
+package for the current system and the release page; installing over the existing copy keeps the
+settings. **? > Check for updates** checks at any time; **Settings > Updates** turns automatic checks
+off. See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.
 
 </details>
 
-### Custom classes and themes
-
-Any Beamer presentation works, including custom Beamer classes and themes. LaTeX
-builds the slides, so every theme, colour scheme, template and package behaves as in any other editor;
-TeXora reads the frames from Beamer's own `.nav` file.
-
-<details>
-<summary>What is supported, and the limits</summary>
-<br>
-
-- **Own class or theme files**: `\documentclass{acmedeck}` or `\usetheme{Acme}` with `acmedeck.cls` or
-  `beamerthemeAcme.sty` in the presentation's folder. The package check counts them as found.
-- **Every frame form**: `\begin{frame}…\end{frame}`, the command form `\frame{…}`, and frame
-  environments defined around a frame, in the file or in a local `.sty`/`.cls`, for example
-  `\newenvironment{customframe}[1]{\begin{frame}[environment=customframe]{#1}}{\end{frame}}`.
-  Their `\note{…}`, titles, overlays, folding and slide-to-source links all work.
-- **`\againframe{label}`** counts as a slide of its own: it shows the note of the frame it repeats, and
-  a note written there goes into that frame.
-- **Limits**: frames kept in separate files (`\input`, `\include`) or made by a macro cannot be
-  matched to the source one for one. TeXora still presents everything (slides, overlays, PDF notes
-  pages and `.note.md` notes), but does not read `\note{…}` from the source and saves edited notes in
-  the `.note.md` file, so no note lands on the wrong slide.
-</details>
+## Writing slides in LaTeX
 
 ### LaTeX studio
 
@@ -365,14 +392,60 @@ right, and compile messages at the bottom. Typing never saves or rebuilds by its
   and **Cmd/Ctrl+[** always uncomments.
 - Double-click the slide preview to jump to its source. The **<** and **>** buttons move between
   slides; the wheel zooms.
-- The bottom panel has **Problems**, **Packages** and **Full log** tabs. Click a problem to go to its
-  line. Drag the panel's top edge to resize it.
+- The bottom panel has **Problems**, **Packages**, **Accessibility** and **Full log** tabs. Click a
+  problem to go to its line. Drag the panel's top edge to resize it.
 - Drag the divider between source and preview to resize; double-click it to split evenly.
 - A file that fails to compile on opening opens in the studio with its problems listed.
 - The first time a file is opened, an untouched copy is kept as `<name>.tex.texora-backup`.
 - Slide and source links use SyncTeX, included with TeX Live, MacTeX and MiKTeX.
 
 </details>
+
+### Custom classes and themes
+
+Any Beamer presentation works, including custom Beamer classes and themes. LaTeX
+builds the slides, so every theme, colour scheme, template and package behaves as in any other editor;
+TeXora reads the frames from Beamer's own `.nav` file.
+
+<details>
+<summary>What is supported, and the limits</summary>
+<br>
+
+- **Own class or theme files**: `\documentclass{acmedeck}` or `\usetheme{Acme}` with `acmedeck.cls` or
+  `beamerthemeAcme.sty` in the presentation's folder. The package check counts them as found.
+- **Every frame form**: `\begin{frame}…\end{frame}`, the command form `\frame{…}`, and frame
+  environments defined around a frame, in the file or in a local `.sty`/`.cls`, for example
+  `\newenvironment{customframe}[1]{\begin{frame}[environment=customframe]{#1}}{\end{frame}}`.
+  Their `\note{…}`, titles, overlays, folding and slide-to-source links all work.
+- **`\againframe{label}`** counts as a slide of its own: it shows the note of the frame it repeats, and
+  a note written there goes into that frame.
+- **Limits**: frames kept in separate files (`\input`, `\include`) or made by a macro cannot be
+  matched to the source one for one. TeXora still presents everything (slides, overlays, PDF notes
+  pages and `.note.md` notes), but does not read `\note{…}` from the source and saves edited notes in
+  the `.note.md` file, so no note lands on the wrong slide.
+
+</details>
+
+### Using another LaTeX editor
+
+A presentation with TeXora's videos or pictures can be written and compiled in any LaTeX editor
+(TeXstudio, VS Code, Overleaf, ...) without errors:
+
+1. **Open the `.tex` file in TeXora once** (or compile it there). TeXora puts `texoravideo.sty`,
+   `texoraimage.sty` and `accessgate.sty` beside the file, makes the video posters (`texora-video/`)
+   and converts the pictures (`texora-images/`).
+2. **Keep those files and folders with the `.tex` file**, also when copying or uploading it (for
+   Overleaf, upload them too).
+3. Compile in any editor: every video shows its poster and every picture shows. Videos play, and
+   presenting works, in TeXora.
+
+Before step 1, copy [`texoravideo.sty`, `texoraimage.sty` and `accessgate.sty`](assets/tex) next to the
+`.tex` file by hand. The document then compiles anywhere; a video or picture TeXora has not prepared
+yet shows as a box with its file name and a LaTeX warning, never an error. Videos and pictures added
+later get their poster or copy the next time TeXora compiles the file. Works with pdfLaTeX, XeLaTeX and
+LuaLaTeX.
+
+## Animations, videos and pictures
 
 ### Animations
 
@@ -411,141 +484,6 @@ ls frames | wc -l                      # number of frames
 \animategraphics[autoplay,loop,width=0.5\textwidth]{10}{frames/f}{1}{30}   % 30 = number of frames
 ```
 
-</details>
-
-### Accessibility
-
-The full guide, with every kind of content and what it becomes in the tagged PDF:
-[Accessible.md](Accessible.md).
-Step-by-step recipes for adding tags and making an accessible PDF: [how-to.md](how-to.md).
-
-TeXora helps make presentations usable with screen readers, in three layers that each work alone, in
-any editor and engine: a **registry** of what each command needs (data), the **`accessgate`** LaTeX
-package (adds tags only where tagging is on), and **checking**.
-
-```latex
-\includegraphics[width=4cm,alt={Bar chart: sales doubled from 2024 to 2026}]{chart.pdf}
-\includeimage[width=3cm,alt={Team photo, five people}]{team.heic}
-\includevideo[width=6cm][alt={Play video: sorting demo, 40 s},caption={The list is sorted in three passes.}]{sort.mp4}
-\AccFigure{Bars growing from zero}{\animategraphics[autoplay]{10}{bars-}{1}{20}}
-```
-
-- **The WCAG checker** (the accessibility button beside Search, Analytics and Settings) checks the open PDF,
-  any PDF, and its source against WCAG 2.2 and PDF/UA: what fails, what to check by hand, what passes,
-  with the page or line of each issue; for Beamer slides it checks the tagged copy too, and runs veraPDF
-  when installed.
-- **Tools > Check accessibility** lists what is missing (alt text, captions or transcripts, pause for
-  looping media, link text, slide titles, table headers, colour contrast, link colour, language,
-  title), with the line and WCAG 2.2 criterion. `TeXora --check-accessibility talk.tex [--strict]` prints the same for any editor or CI.
-- **Build tagged copy** makes `talk.acc.pdf`, a tagged copy (LuaLaTeX, PDF/UA metadata, the
-  document's language), through a wrapper file, so `talk.tex` and `talk.pdf` are not changed; then it
-  checks the copy's tags and alt text. It is tagged, not validated: validate it with veraPDF
-  (PDF/UA-2). `TeXora --build-accessible talk.tex [--handout] [--still]` does the same.
-
-<details>
-<summary>Keys, your own macros, Beamer and engines</summary>
-<br>
-
-| Command | Accessibility keys |
-|---|---|
-| `\includegraphics`, `\includeimage` | `alt={...}`, or `artifact` / `decorative` for decoration |
-| `\includevideo` (second options) | `alt={...}` (what the link does), and `caption={...}`, `transcript={...}` or `transcriptfile=<file>` |
-| anything else | `\AccFigure{description}{...}`, `\AccArtifact{...}` |
-
-Transcripts given with `transcript=` are printed where `\AccTranscripts` is (for example in a last frame
-with `[allowframebreaks]`), each linked from its video. Your own macros are checked too: add them to an
-`accessgate-registry.toml` beside the `.tex` file, for example
-
-```toml
-[command.photo]
-requires = ["alt = alt | artifact"]
-```
-
-**Beamer** refuses LaTeX's tagging, so for Beamer slides **Build tagged copy** makes its copy with the
-`ltx-talk` class (TeX Live 2026). Frames, overlays, frame titles (as headings), pictures with their alt
-text, columns, blocks, theorems, verbatim frames and the contents stay; themes and speaker notes are left
-out; `<name>.acc-losses.txt` lists what the copy changed. A custom class or theme beside the
-presentation goes along as `<name>.acc.cls` / `<name>.acc.sty`. Works with `ltx-talk` 0.4.6 and 0.6.12
-(which needs LaTeX 2026-06-01: update LaTeX with it). Without `ltx-talk`, no copy is made and the check
-still applies.
-
-LuaLaTeX gives the best tags, pdfLaTeX tags too, and XeLaTeX's tags are incomplete. Validate PDF/UA-2
-files with [veraPDF](https://verapdf.org) (`verapdf --flavour ua2 talk.acc.pdf`); every tagged copy of
-the accessible templates passes with veraPDF 1.30.4. [PAC](https://pac.pdf-accessibility.org) does not
-state PDF/UA-2 support.
-</details>
-
-### Using another LaTeX editor
-
-A presentation with TeXora's videos or pictures can be written and compiled in any LaTeX editor
-(TeXstudio, VS Code, Overleaf, ...) without errors:
-
-1. **Open the `.tex` file in TeXora once** (or compile it there). TeXora puts `texoravideo.sty`,
-   `texoraimage.sty` and `accessgate.sty` beside the file, makes the video posters (`texora-video/`) and converts the
-   pictures (`texora-images/`).
-2. **Keep those files and folders with the `.tex` file**, also when copying or uploading it (for
-   Overleaf, upload them too).
-3. Compile in any editor: every video shows its poster and every picture shows. Videos play, and
-   presenting works, in TeXora.
-
-Before step 1, copy [`texoravideo.sty`, `texoraimage.sty` and `accessgate.sty`](assets/tex) next to the `.tex` file by hand.
-The document then compiles anywhere; a video or picture TeXora has not prepared yet shows as a box with
-its file name and a LaTeX warning, never an error. Videos and pictures added later get their poster or
-copy the next time TeXora compiles the file. Tested with pdfLaTeX, XeLaTeX and LuaLaTeX.
-
-### Pictures
-
-pdfLaTeX, XeLaTeX and LuaLaTeX cannot read **AVIF**, **WebP**, **JPEG XL**, **GIF**, **TIFF**, **BMP** or
-**HEIC/HEIF** pictures. With TeXora's package `texoraimage`, they work like any other picture, and the
-document still compiles in other LaTeX editors.
-
-```latex
-\usepackage{texoraimage}
-...
-\includeimage[width=0.5\linewidth]{images/photo.heic}
-\includeimage[height=3cm]{logo.webp}
-```
-
-The options are those of `\includegraphics`. PNG, JPEG, PDF and EPS pictures go straight to
-`\includegraphics`, so `\includeimage` can be used for every picture. A GIF shown with `\includeimage`
-is a still picture, its first frame; to play it in the slide, use `\includevideo{loop.gif}` from
-`texoravideo` instead.
-
-<details>
-<summary>How it works, other editors, converters and safety</summary>
-<br>
-
-**In TeXora.** Before LaTeX runs, each such picture is converted to a JPEG
-(a PNG when it has transparency, which is kept) in a `texora-images` folder beside the presentation,
-at most 2400 pixels on its longer side. LaTeX includes that copy. A copy is made again only when its
-picture changes; copies no longer used are removed.
-
-**In other LaTeX editors.** TeXora puts `texoraimage.sty` beside the presentation. Keep it and the
-`texora-images` folder with the `.tex` file (for example when uploading to Overleaf), and the document
-compiles everywhere with every picture. A picture that has not been converted yet shows as a framed
-box with its file name and a LaTeX warning, never an error. Tested with pdfLaTeX, XeLaTeX and LuaLaTeX.
-
-**Decoders.** Royalty-free formats are decoded inside TeXora, in pure Rust; nothing needs to be
-installed:
-
-| Format | Decoder |
-|---|---|
-| WebP, GIF (first frame), TIFF, BMP | the [`image`](https://crates.io/crates/image) crate |
-| JPEG XL | [`jxl-oxide`](https://crates.io/crates/jxl-oxide) |
-| AVIF | [`avif-decode`](https://crates.io/crates/avif-decode) with [`rav1d`](https://github.com/memorysafety/rav1d), the memory-safe Rust port of dav1d, built without its assembly |
-
-**HEIC/HEIF** pictures use HEVC, which is covered by active patents, so TeXora contains no decoder for
-them. It uses one already on the computer, in this order, and skips any that fails: `heif-dec` or
-`heif-convert` (libheif), `sips` (built into macOS), `magick` (ImageMagick), then the ffmpeg set in
-**Settings > Video**. The same converters stand in if a built-in decoder cannot read an unusual file.
-
-**Problems** (warnings under Problems, with the line; the slides still build): a missing picture, a file
-whose first bytes are not that format, an unsupported format, a path outside the presentation's
-folder, or no HEIC converter on the computer.
-
-**Safety.** Only files inside the presentation's folder are used, only when their first bytes really
-are that format. Converters get full paths as separate arguments, never through a shell; ImageMagick is
-told the format so it uses only that reader, and ffmpeg reads local files only.
 </details>
 
 ### Videos
@@ -590,9 +528,9 @@ never runs it.
 
 **Sound.** With ffmpeg, the sound plays through ffplay, part of every ffmpeg install. It starts,
 pauses and loops with the picture and stops on leaving the slide. The picture follows the sound's own
-clock, so the two stay in sync (within about 5 ms in tests). **Settings > Video > Play sound** turns
-sound on or off. GIFs have no sound. With VLC only (no ffmpeg), VLC plays the sound itself in its own
-window; **Play sound** and `mute` apply there too.
+clock, so the two stay in sync. **Settings > Video > Play sound** turns sound on or off. GIFs have no
+sound. With VLC only (no ffmpeg), VLC plays the sound itself in its own window; **Play sound** and
+`mute` apply there too.
 
 **Problems.** A missing file, a file that is not a video, or a path outside the presentation's folder
 (absolute paths, `..`, links leading out, web addresses) shows a message over the poster and under
@@ -631,33 +569,120 @@ projector; some players start paused.
 
 </details>
 
-### Presenting
+### Pictures
 
-- **F5** opens the audience window, fullscreen on a second display; on a single display, **F11**
-  makes it fullscreen.
-- **B** blanks the screen, **W** shows a whiteboard, **F** freezes the audience view.
-- Ink, the laser pointer and zoom appear on the audience screen as they are used.
+pdfLaTeX, XeLaTeX and LuaLaTeX cannot read **AVIF**, **WebP**, **JPEG XL**, **GIF**, **TIFF**, **BMP** or
+**HEIC/HEIF** pictures. With TeXora's package `texoraimage`, they work like any other picture, and the
+document still compiles in other LaTeX editors.
 
-### Contents, analytics and settings
+```latex
+\usepackage{texoraimage}
+...
+\includeimage[width=0.5\linewidth]{images/photo.heic}
+\includeimage[height=3cm]{logo.webp}
+```
 
-- **Contents** (**T**) lists the talk's sections in colour, with bookmarks and questions; **Back to
-  where I was** returns to the previous position.
-- **Analytics** (**Y**) times every rehearsal slide by slide, compares it with the previous run and
-  exports CSV.
-- **Settings** covers text size, the LaTeX engine, required packages, video, notes, updates and every
-  keyboard shortcut.
-- The **?** menu has **Documentation**, **System check**, **Command-line tool**, **Keyboard
-  shortcuts**, **Check for updates** and **About TeXora**.
+The options are those of `\includegraphics`. PNG, JPEG, PDF and EPS pictures go straight to
+`\includegraphics`, so `\includeimage` can be used for every picture. A GIF shown with `\includeimage`
+is a still picture, its first frame; to play it in the slide, use `\includevideo{loop.gif}` from
+`texoravideo` instead.
 
 <details>
-<summary>Updates</summary>
+<summary>How it works, other editors, converters and safety</summary>
 <br>
 
-When a new version is published, a notice appears in the lower right corner with **See what's new**,
-**Later** and **Skip this version**, and a dot appears on the **?** button. The update box links the
-package for the current system and the release page; installing over the existing copy keeps the
-settings. **? > Check for updates** checks at any time; **Settings > Updates** turns automatic checks
-off. See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.
+**In TeXora.** Before LaTeX runs, each such picture is converted to a JPEG
+(a PNG when it has transparency, which is kept) in a `texora-images` folder beside the presentation,
+at most 2400 pixels on its longer side. LaTeX includes that copy. A copy is made again only when its
+picture changes; copies no longer used are removed.
+
+**In other LaTeX editors.** TeXora puts `texoraimage.sty` beside the presentation. Keep it and the
+`texora-images` folder with the `.tex` file (for example when uploading to Overleaf), and the document
+compiles everywhere with every picture. A picture that has not been converted yet shows as a framed
+box with its file name and a LaTeX warning, never an error.
+
+**Decoders.** Royalty-free formats are decoded inside TeXora, in pure Rust; nothing needs to be
+installed:
+
+| Format | Decoder |
+|---|---|
+| WebP, GIF (first frame), TIFF, BMP | the [`image`](https://crates.io/crates/image) crate |
+| JPEG XL | [`jxl-oxide`](https://crates.io/crates/jxl-oxide) |
+| AVIF | [`avif-decode`](https://crates.io/crates/avif-decode) with [`rav1d`](https://github.com/memorysafety/rav1d), the memory-safe Rust port of dav1d, built without its assembly |
+
+**HEIC/HEIF** pictures use HEVC, which is covered by active patents, so TeXora contains no decoder for
+them. It uses one already on the computer, in this order, and skips any that fails: `heif-dec` or
+`heif-convert` (libheif), `sips` (built into macOS), `magick` (ImageMagick), then the ffmpeg set in
+**Settings > Video**. The same converters stand in if a built-in decoder cannot read an unusual file.
+
+**Problems** (warnings under Problems, with the line; the slides still build): a missing picture, a file
+whose first bytes are not that format, an unsupported format, a path outside the presentation's
+folder, or no HEIC converter on the computer.
+
+**Safety.** Only files inside the presentation's folder are used, only when their first bytes really
+are that format. Converters get full paths as separate arguments, never through a shell; ImageMagick is
+told the format so it uses only that reader, and ffmpeg reads local files only.
+
+</details>
+
+## Accessibility
+
+TeXora helps make presentations usable with screen readers, in three layers that each work alone, in
+any editor and engine: a **registry** of what each command needs (data), the **`accessgate`** LaTeX
+package (adds tags only where tagging is on), and **checking**. The full guide, with every kind of
+content and what it becomes in the tagged PDF, is [Accessible.md](Accessible.md); step-by-step recipes
+are in [how-to.md](how-to.md).
+
+```latex
+\includegraphics[width=4cm,alt={Bar chart: sales doubled from 2024 to 2026}]{chart.pdf}
+\includeimage[width=3cm,alt={Team photo, five people}]{team.heic}
+\includevideo[width=6cm][alt={Play video: sorting demo, 40 s},caption={The list is sorted in three passes.}]{sort.mp4}
+\AccFigure{Bars growing from zero}{\animategraphics[autoplay]{10}{bars-}{1}{20}}
+```
+
+- **The WCAG checker** (the accessibility button beside Search, Analytics and Settings) checks the open
+  PDF, any PDF, and its source against WCAG 2.2 and PDF/UA: what fails, what to check by hand, what
+  passes, with the page or line of each issue. For Beamer slides it checks the tagged copy too, and runs
+  veraPDF when installed.
+- **Tools > Check accessibility** lists what is missing (alt text, captions or transcripts, pause for
+  looping media, link text, slide titles, table headers, colour contrast, link colour, language,
+  title), with the line and WCAG 2.2 criterion. `TeXora --check-accessibility talk.tex [--strict]`
+  prints the same for any editor or CI.
+- **Build tagged copy** makes `talk.acc.pdf`, a tagged copy (LuaLaTeX, PDF/UA metadata, the
+  document's language), through a wrapper file, so `talk.tex` and `talk.pdf` are not changed; then it
+  checks the copy's tags and alt text. It is tagged, not validated: validate it with veraPDF
+  (PDF/UA-2). `TeXora --build-accessible talk.tex [--handout] [--still]` does the same.
+
+<details>
+<summary>Keys, your own macros, Beamer and engines</summary>
+<br>
+
+| Command | Accessibility keys |
+|---|---|
+| `\includegraphics`, `\includeimage` | `alt={...}`, or `artifact` / `decorative` for decoration |
+| `\includevideo` (second options) | `alt={...}` (what the link does), and `caption={...}`, `transcript={...}` or `transcriptfile=<file>` |
+| anything else | `\AccFigure{description}{...}`, `\AccArtifact{...}` |
+
+Transcripts given with `transcript=` are printed where `\AccTranscripts` is (for example in a last frame
+with `[allowframebreaks]`), each linked from its video. Your own macros are checked too: add them to an
+`accessgate-registry.toml` beside the `.tex` file, for example
+
+```toml
+[command.photo]
+requires = ["alt = alt | artifact"]
+```
+
+**Beamer** refuses LaTeX's tagging, so for Beamer slides **Build tagged copy** makes its copy with the
+`ltx-talk` class (TeX Live 2026). Frames, overlays, frame titles (as headings), pictures with their alt
+text, columns, blocks, theorems, verbatim frames and the contents stay; themes and speaker notes are left
+out; `<name>.acc-losses.txt` lists what the copy changed. A custom class or theme beside the
+presentation goes along as `<name>.acc.cls` / `<name>.acc.sty`. Works with `ltx-talk` 0.4.6 and 0.6.12
+(which needs LaTeX 2026-06-01: update LaTeX with it). Without `ltx-talk`, no copy is made and the check
+still applies.
+
+LuaLaTeX gives the best tags, pdfLaTeX tags too, and XeLaTeX's tags are incomplete. Validate PDF/UA-2
+files with [veraPDF](https://verapdf.org) (`verapdf --flavour ua2 talk.acc.pdf`); the tagged copies of
+the accessible templates pass. [PAC](https://pac.pdf-accessibility.org) does not state PDF/UA-2 support.
 
 </details>
 
@@ -670,27 +695,28 @@ In the LaTeX studio, single-key shortcuts are inactive while editing.
 <summary>All default shortcuts</summary>
 <br>
 
-| Action                      | Keys                | Action                  | Keys                     |
-| --------------------------- | ------------------- | ----------------------- | ------------------------ |
-| Next / previous step        | Right, Space / Left | Next / previous slide   | Shift+Right / Shift+Left |
-| First / last slide          | Home / End          | Go to slide             | G                        |
-| Audience window             | F5                  | Fullscreen              | F11                      |
-| Black / white screen        | B / W               | Freeze audience         | F                        |
-| Overview                    | O                   | Split view              | S                        |
-| Large slide                 | N                   | Back                    | Backspace                |
-| Start or pause timer        | P                   | Stop and reset timer    | R                        |
-| Set talk duration           | U                   | Bookmark slide          | M                        |
-| Mark a question             | Q                   | Contents                | T                        |
-| Search                      | Cmd/Ctrl+F          | Analytics               | Y                        |
-| Pointer / pen / highlighter | V / D / H           | Eraser / laser          | X / L                    |
-| Zoom to area                | Z                   | Zoom in / out / fit     | + / - / 0                |
-| Undo ink / clear ink        | Cmd/Ctrl+Z / C      | Edit notes / save notes | E / Cmd/Ctrl+Enter       |
-| LaTeX studio                | Cmd/Ctrl+E          | Compile LaTeX           | Cmd/Ctrl+B               |
-| Save source                 | Cmd/Ctrl+S          | Check required packages | Cmd/Ctrl+K               |
-| Toggle comment (studio)     | Cmd/Ctrl+/          | Comment / uncomment     | Cmd/Ctrl+] / Cmd/Ctrl+[  |
-| Open file                   | Cmd/Ctrl+O          | Home                    | Cmd/Ctrl+L               |
-| Close tab                   | Cmd/Ctrl+W          | Settings                | Cmd/Ctrl+,               |
-| Cancel                      | Esc                 |                         |                          |
+| Action                      | Keys                | Action                       | Keys                     |
+| --------------------------- | ------------------- | ---------------------------- | ------------------------ |
+| Next / previous step        | Right, Space / Left | Next / previous slide        | Shift+Right / Shift+Left |
+| First / last slide          | Home / End          | Go to slide                  | G                        |
+| Reading guide on the notes  | Down / Up           | Back                         | Backspace                |
+| Teleprompter: play or pause | K                   | Teleprompter: faster / slower | ] / [                   |
+| Audience window             | F5                  | Fullscreen                   | F11                      |
+| Black / white screen        | B / W               | Freeze audience              | F                        |
+| Overview                    | O                   | Split view                   | S                        |
+| Large slide                 | N                   | Cancel                       | Esc                      |
+| Start or pause timer        | P                   | Stop and reset timer         | R                        |
+| Set talk duration           | U                   | Bookmark slide               | M                        |
+| Mark a question             | Q                   | Contents                     | T                        |
+| Search                      | Cmd/Ctrl+F          | Analytics                    | Y                        |
+| Pointer / pen / highlighter | V / D / H           | Eraser / laser               | X / L                    |
+| Zoom to area                | Z                   | Zoom in / out / fit          | + / - / 0                |
+| Undo ink / clear ink        | Cmd/Ctrl+Z / C      | Edit notes / save notes      | E / Cmd/Ctrl+Enter       |
+| LaTeX studio                | Cmd/Ctrl+E          | Compile LaTeX                | Cmd/Ctrl+B               |
+| Save source                 | Cmd/Ctrl+S          | Check required packages      | Cmd/Ctrl+K               |
+| Toggle comment (studio)     | Cmd/Ctrl+/          | Comment / uncomment          | Cmd/Ctrl+] / Cmd/Ctrl+[  |
+| Open file                   | Cmd/Ctrl+O          | Home                         | Cmd/Ctrl+L               |
+| Close tab                   | Cmd/Ctrl+W          | Settings                     | Cmd/Ctrl+,               |
 
 </details>
 
@@ -723,7 +749,7 @@ cargo test
 | Path                 | Content                                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `src/`               | The application, in Rust with [egui](https://github.com/emilk/egui) and [PDFium](https://pdfium.googlesource.com/pdfium/) |
-| `assets/`            | Icon, Home picture, fonts, sample lecture, templates and the `texoravideo` LaTeX package                                  |
+| `assets/`            | Icon, Home picture, fonts, sample lecture, templates and the LaTeX packages TeXora provides                              |
 | `scripts/`           | Packaging, installer, release and icon scripts                                                                            |
 | `installer/`         | Windows installer (Inno Setup)                                                                                            |
 | `.github/workflows/` | Continuous tests and the release workflow                                                                                 |
