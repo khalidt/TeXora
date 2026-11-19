@@ -53,6 +53,11 @@ pub enum Action {
     EditNotes,
     AddBookmark,
     CloseTab,
+    NoteLineNext,
+    NoteLinePrev,
+    PrompterPlay,
+    PrompterFaster,
+    PrompterSlower,
 }
 
 impl Action {
@@ -106,6 +111,11 @@ impl Action {
             Action::EditNotes => "Edit notes for this slide",
             Action::AddBookmark => "Bookmark this slide",
             Action::CloseTab => "Close this tab",
+            Action::NoteLineNext => "Next line of the notes (reading guide)",
+            Action::NoteLinePrev => "Previous line of the notes (reading guide)",
+            Action::PrompterPlay => "Teleprompter: play or pause",
+            Action::PrompterFaster => "Teleprompter: faster",
+            Action::PrompterSlower => "Teleprompter: slower",
         }
     }
     /// Keys that keep working while typing, because they hold a modifier or close things.
@@ -169,8 +179,8 @@ pub fn default_keys() -> Vec<(Action, Vec<KeyBind>)> {
     use Action::*;
     let k = KeyBind::new;
     vec![
-        (Next, vec![k("ArrowRight"), k("ArrowDown"), k("PageDown"), k("Space")]),
-        (Prev, vec![k("ArrowLeft"), k("ArrowUp"), k("PageUp")]),
+        (Next, vec![k("ArrowRight"), k("PageDown"), k("Space")]),
+        (Prev, vec![k("ArrowLeft"), k("PageUp")]),
         (NextFrame, vec![KeyBind::shift("ArrowRight"), KeyBind::shift("ArrowDown")]),
         (PrevFrame, vec![KeyBind::shift("ArrowLeft"), KeyBind::shift("ArrowUp")]),
         (First, vec![k("Home")]),
@@ -217,8 +227,41 @@ pub fn default_keys() -> Vec<(Action, Vec<KeyBind>)> {
         (EditNotes, vec![k("E")]),
         (AddBookmark, vec![k("M")]),
         (CloseTab, vec![KeyBind::cmd("W")]),
+        (NoteLineNext, vec![k("ArrowDown")]),
+        (NoteLinePrev, vec![k("ArrowUp")]),
+        (PrompterPlay, vec![k("K")]),
+        (PrompterFaster, vec![k("]")]),
+        (PrompterSlower, vec![k("[")]),
     ]
 }
+
+/// Shortcuts saved by an older version get the actions added since, with their default keys. Down and
+/// Up moved from the previous and next step to the notes' reading guide when it came: a saved list
+/// without the guide still gives them to the steps, so they move over once. A default key the person
+/// gave to something else stays theirs, and the new action starts without it.
+pub fn add_new_actions(keys: &mut Vec<(Action, Vec<KeyBind>)>) {
+    let had_guide = keys.iter().any(|(a, _)| *a == Action::NoteLineNext);
+    if !had_guide {
+        for (a, ks) in keys.iter_mut() {
+            match a {
+                Action::Next => ks.retain(|k| *k != KeyBind::new("ArrowDown")),
+                Action::Prev => ks.retain(|k| *k != KeyBind::new("ArrowUp")),
+                _ => {}
+            }
+        }
+    }
+    for (a, defaults) in default_keys() {
+        if keys.iter().any(|(x, _)| *x == a) {
+            continue;
+        }
+        let free: Vec<KeyBind> = defaults.into_iter().filter(|k| !keys.iter().any(|(_, ks)| ks.contains(k))).collect();
+        keys.push((a, free));
+    }
+}
+
+/// The teleprompter's two looks, as (background, text): dark text on light, and light text on dark.
+pub const PROMPTER_LIGHT: ([u8; 3], [u8; 3]) = ([252, 251, 249], [20, 20, 20]);
+pub const PROMPTER_DARK: ([u8; 3], [u8; 3]) = ([18, 18, 20], [236, 235, 230]);
 
 /// Where the dividers sit in each view, as a share of the space. Empty means fit automatically.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -232,6 +275,8 @@ pub struct Layout {
     pub split_row: Option<f32>,
     /// The LaTeX studio's slide and notes preview, as a share of the width beside the editor.
     pub studio_col: Option<f32>,
+    /// The teleprompter's share of the width beside the current and next slide.
+    pub prompter_col: Option<f32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -246,6 +291,13 @@ pub struct Settings {
     /// Multiplies the size of the whole interface.
     pub ui_scale: f32,
     pub notes_size: f32,
+    /// How fast the teleprompter scrolls, from 1 (slow) to 10 (fast).
+    pub prompter_speed: f32,
+    /// When the teleprompter's script reaches the next slide's notes, that slide comes on show.
+    pub prompter_follow: bool,
+    /// The teleprompter's background and text colours (light by default; Dark swaps them).
+    pub prompter_bg: [u8; 3],
+    pub prompter_fg: [u8; 3],
     /// For a .tex presentation, notes written in the presenter also go into the source as \note{...}
     /// (and the slides rebuild). Off: they go into the .note.md file beside the presentation.
     pub notes_in_tex: bool,
@@ -280,6 +332,10 @@ impl Default for Settings {
             laser_color: [235, 30, 30],
             ui_scale: 1.0,
             notes_size: 26.0,
+            prompter_speed: 4.0,
+            prompter_follow: true,
+            prompter_bg: PROMPTER_LIGHT.0,
+            prompter_fg: PROMPTER_LIGHT.1,
             notes_in_tex: true,
             editor_size: 14.0,
             editor_wrap: false,
@@ -318,11 +374,7 @@ impl Settings {
         }
         let mut s: Settings = parsed.and_then(Result::ok).unwrap_or_default();
         // Actions added by later versions get their default keys.
-        for (a, k) in default_keys() {
-            if !s.keys.iter().any(|(x, _)| *x == a) {
-                s.keys.push((a, k));
-            }
-        }
+        add_new_actions(&mut s.keys);
         s
     }
     pub fn save(&self) -> Result<(), String> {
@@ -353,7 +405,7 @@ mod tests {
     #[test]
     fn default_keys_do_not_clash_and_all_exist() {
         let d = default_keys();
-        assert_eq!(d.len(), 48);
+        assert_eq!(d.len(), 53);
         let mut seen = std::collections::HashSet::new();
         for (a, ks) in &d {
             assert!(!ks.is_empty(), "{a:?}");
@@ -369,5 +421,47 @@ mod tests {
         let s = Settings::default();
         assert_eq!(s.conflict(&KeyBind::new("B"), Action::Pen), Some(Action::Blackout));
         assert_eq!(s.conflict(&KeyBind::new("B"), Action::Blackout), None);
+    }
+
+    #[test]
+    fn down_and_up_move_to_the_reading_guide_once() {
+        let keys_of = |keys: &[(Action, Vec<KeyBind>)], a: Action| keys.iter().find(|(x, _)| *x == a).map(|(_, k)| k.clone()).unwrap();
+        // Saved by a version before the reading guide: Down and Up were next and previous step.
+        let mut old: Vec<(Action, Vec<KeyBind>)> = default_keys().into_iter().filter(|(a, _)| !matches!(a, Action::NoteLineNext | Action::NoteLinePrev)).collect();
+        for (a, ks) in old.iter_mut() {
+            match a {
+                Action::Next => ks.insert(1, KeyBind::new("ArrowDown")),
+                Action::Prev => ks.insert(1, KeyBind::new("ArrowUp")),
+                _ => {}
+            }
+        }
+        add_new_actions(&mut old);
+        assert_eq!(keys_of(&old, Action::NoteLineNext), vec![KeyBind::new("ArrowDown")]);
+        assert_eq!(keys_of(&old, Action::NoteLinePrev), vec![KeyBind::new("ArrowUp")]);
+        assert!(!keys_of(&old, Action::Next).contains(&KeyBind::new("ArrowDown")));
+        assert!(keys_of(&old, Action::Next).contains(&KeyBind::new("ArrowRight")), "the other keys stay");
+
+        // Once there, a key the person chose stays theirs: Down given back to "next step" is kept.
+        let mut mine = default_keys();
+        for (a, ks) in mine.iter_mut() {
+            match a {
+                Action::NoteLineNext => ks.clear(),
+                Action::Next => ks.push(KeyBind::new("ArrowDown")),
+                _ => {}
+            }
+        }
+        add_new_actions(&mut mine);
+        assert!(keys_of(&mine, Action::Next).contains(&KeyBind::new("ArrowDown")));
+        assert!(keys_of(&mine, Action::NoteLineNext).is_empty());
+
+        // A default key used for something else is not given to a new action as well.
+        let mut taken: Vec<(Action, Vec<KeyBind>)> = default_keys().into_iter().filter(|(a, _)| *a != Action::NoteLinePrev).collect();
+        for (a, ks) in taken.iter_mut() {
+            if *a == Action::Pen {
+                ks.push(KeyBind::new("ArrowUp"));
+            }
+        }
+        add_new_actions(&mut taken);
+        assert!(keys_of(&taken, Action::NoteLinePrev).is_empty());
     }
 }

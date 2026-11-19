@@ -63,6 +63,118 @@ pub struct PageInfo {
     /// from the top left, like links.
     pub media: Vec<PageMedia>,
     pub videos: Vec<PageVideo>,
+    /// The lines of text, top to bottom, for the notes' reading guide.
+    pub lines: Vec<TextLine>,
+}
+
+/// One line of text on a page. `rect` is x0, y0, x1, y1 as fractions of the full page, from the top
+/// left, like links.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextLine {
+    pub rect: [f32; 4],
+    pub text: String,
+}
+
+/// Groups a page's text pieces into lines: pieces side by side at the same height (a bold word, a
+/// formula) are one line, and pieces far apart across the page are not. With `halves` (slide and
+/// notes side by side on one page) the two halves are never joined. Upright text only, so a date
+/// printed sideways is not a line. `pieces` are rects as fractions of the page, from the top left,
+/// with their text.
+pub fn group_lines(mut pieces: Vec<([f32; 4], String)>, halves: bool) -> Vec<TextLine> {
+    pieces.retain(|(r, t)| !t.trim().is_empty() && r[2] > r[0] && r[3] > r[1]);
+    pieces.sort_by(|a, b| (a.0[1] + a.0[3]).total_cmp(&(b.0[1] + b.0[3])).then(a.0[0].total_cmp(&b.0[0])));
+    let side = |r: &[f32; 4]| halves && (r[0] + r[2]) / 2.0 >= 0.5;
+    let mut lines: Vec<TextLine> = vec![];
+    for (r, t) in pieces {
+        let h = r[3] - r[1];
+        let joined = lines.iter_mut().rev().take(8).find(|l| {
+            let lh = l.rect[3] - l.rect[1];
+            let overlap = r[3].min(l.rect[3]) - r[1].max(l.rect[1]);
+            let gap = (r[0] - l.rect[2]).max(l.rect[0] - r[2]);
+            overlap > 0.5 * h.min(lh) && gap < 0.06 && side(&l.rect) == side(&r)
+        });
+        match joined {
+            Some(l) => {
+                // A piece left of the line (sorted after it by a hair) goes in front.
+                l.text = if r[0] < l.rect[0] { format!("{} {}", t.trim(), l.text) } else { format!("{} {}", l.text, t.trim()) };
+                l.rect = [l.rect[0].min(r[0]), l.rect[1].min(r[1]), l.rect[2].max(r[2]), l.rect[3].max(r[3])];
+            }
+            None => lines.push(TextLine { rect: r, text: t.trim().to_string() }),
+        }
+    }
+    // Sideways text (narrow and tall) is no line to read along.
+    lines.retain(|l| (l.rect[2] - l.rect[0]) >= (l.rect[3] - l.rect[1]) * 0.8);
+    lines.sort_by(|a, b| a.rect[1].total_cmp(&b.rect[1]).then(a.rect[0].total_cmp(&b.rect[0])));
+    lines
+}
+
+/// The lines inside one part of a page (the notes half of a double-width page, or all of it), with
+/// their rects as fractions of that part.
+pub fn lines_in(lines: &[TextLine], region: Region) -> Vec<TextLine> {
+    let (from, scale) = match region {
+        Region::Full => (0.0, 1.0),
+        Region::Left => (0.0, 2.0),
+        Region::Right => (0.5, 2.0),
+    };
+    lines
+        .iter()
+        .filter(|l| {
+            let mid = (l.rect[0] + l.rect[2]) / 2.0;
+            region == Region::Full || (mid >= from && mid < from + 0.5)
+        })
+        .map(|l| TextLine { rect: [(l.rect[0] - from) * scale, l.rect[1], (l.rect[2] - from) * scale, l.rect[3]], text: l.text.clone() })
+        .collect()
+}
+
+/// Lines of a page back into text: lines that follow each other make a paragraph, and a wider gap
+/// starts a new one. A word cut by hyphenation at a line's end is joined again.
+pub fn lines_as_text(lines: &[TextLine]) -> String {
+    let mut out = String::new();
+    let mut prev: Option<&TextLine> = None;
+    for l in lines {
+        if let Some(p) = prev {
+            let h = (p.rect[3] - p.rect[1]).max(l.rect[3] - l.rect[1]);
+            if l.rect[1] - p.rect[3] > h * 0.9 {
+                out.push_str("\n\n");
+            } else if out.ends_with('-') && out[..out.len() - 1].ends_with(|c: char| c.is_alphabetic()) {
+                out.pop();
+            } else {
+                out.push(' ');
+            }
+        }
+        out.push_str(l.text.trim());
+        prev = Some(l);
+    }
+    out
+}
+
+/// The lines of a notes page that hold the note itself, for the reading guide. Beamer's notes page
+/// also has the talk's title, the section, the slide title and a small picture of the slide, which
+/// are no lines to read. A line belongs to the note when its words come in that order in `note` (the
+/// note as written in the source; a word cut by hyphenation at either end of the line counts), and
+/// its text is not much smaller than the note's (the slide's picture). Without a note, or when no line
+/// matches (notes made another way), every line counts.
+pub fn note_body_lines(lines: Vec<TextLine>, note: Option<&str>) -> Vec<TextLine> {
+    fn words(s: &str) -> Vec<String> {
+        s.split(|c: char| !c.is_alphanumeric()).filter(|w| w.chars().count() >= 3).map(str::to_lowercase).collect()
+    }
+    let Some(note) = note else { return lines };
+    let said = words(note);
+    let in_note = |line: &[String]| {
+        let n = line.len();
+        n > 0
+            && said.len() >= n
+            && (0..=said.len() - n).any(|j| {
+                (0..n).all(|k| {
+                    let (w, s) = (&line[k], &said[j + k]);
+                    w == s || (k == 0 && n > 1 && s.ends_with(w.as_str())) || (k == n - 1 && n > 1 && s.starts_with(w.as_str()))
+                })
+            })
+    };
+    let mut body: Vec<TextLine> = lines.iter().filter(|l| in_note(&words(&l.text))).cloned().collect();
+    let tallest = body.iter().map(|l| l.rect[3] - l.rect[1]).fold(0.0f32, f32::max);
+    body.retain(|l| l.rect[3] - l.rect[1] >= tallest * 0.55);
+    if body.is_empty() { lines } else { body }
 }
 
 /// A clip placed with `\\includevideo` (the texoravideo package): a `texora-video:` link over its
@@ -305,6 +417,15 @@ fn inspect(doc: &PdfDocument, path: &Path) -> DocInfo {
                 p.text_left = text.inside_rect(PdfRect::new_from_values(0.0, 0.0, h, w / 2.0));
                 p.text_right = text.inside_rect(PdfRect::new_from_values(0.0, w / 2.0, h, w));
             }
+            let pieces = text
+                .segments()
+                .iter()
+                .map(|s| {
+                    let r = s.bounds();
+                    ([r.left().value / w, 1.0 - r.top().value / h, r.right().value / w, 1.0 - r.bottom().value / h], s.text())
+                })
+                .collect();
+            p.lines = group_lines(pieces, w / h > 2.2);
         }
         for link in page.links().iter() {
             let Ok(r) = link.rect() else { continue };
@@ -618,6 +739,63 @@ mod tests {
     }
 
     #[test]
+    fn text_pieces_become_lines() {
+        let p = |x0: f32, y0: f32, x1: f32, y1: f32, t: &str| ([x0, y0, x1, y1], t.to_string());
+        let lines = group_lines(
+            vec![
+                p(0.30, 0.50, 0.45, 0.53, "is bold"),
+                p(0.10, 0.50, 0.29, 0.53, "This line"),
+                p(0.10, 0.40, 0.40, 0.43, "First line"),
+                p(0.70, 0.50, 0.90, 0.53, "far away"),
+                p(0.02, 0.10, 0.04, 0.40, "2026-11-18"),
+                p(0.50, 0.60, 0.60, 0.63, "   "),
+                // A bold start a hair lower than the rest of its line still comes first.
+                p(0.25, 0.700, 0.90, 0.730, "for being here."),
+                p(0.08, 0.701, 0.22, 0.731, "Thanks"),
+            ],
+            false,
+        );
+        let texts: Vec<&str> = lines.iter().map(|l| l.text.as_str()).collect();
+        assert_eq!(texts, vec!["First line", "This line is bold", "far away", "Thanks for being here."], "sideways and empty text left out");
+        assert_eq!(lines[1].rect, [0.10, 0.50, 0.45, 0.53]);
+        // Slide and notes side by side: text meeting at the middle stays in its own half.
+        let split = group_lines(vec![p(0.30, 0.1, 0.49, 0.13, "slide footer"), p(0.51, 0.1, 0.70, 0.13, "notes header")], true);
+        assert_eq!(split.len(), 2);
+
+        let halves = vec![TextLine { rect: [0.1, 0.2, 0.4, 0.25], text: "slide".into() }, TextLine { rect: [0.6, 0.2, 0.9, 0.25], text: "note".into() }];
+        let right = lines_in(&halves, Region::Right);
+        assert_eq!(right.len(), 1);
+        assert_eq!(right[0].text, "note");
+        assert!((right[0].rect[0] - 0.2).abs() < 1e-6 && (right[0].rect[2] - 0.8).abs() < 1e-6);
+        assert_eq!(lines_in(&halves, Region::Full).len(), 2);
+    }
+
+    #[test]
+    fn page_lines_become_paragraphs() {
+        let l = |y: f32, t: &str| TextLine { rect: [0.1, y, 0.9, y + 0.03], text: t.into() };
+        let text = lines_as_text(&[l(0.10, "Today I am presenting my dis-"), l(0.135, "sertation on voice."), l(0.25, "A new paragraph.")]);
+        assert_eq!(text, "Today I am presenting my dissertation on voice.\n\nA new paragraph.");
+        assert_eq!(lines_as_text(&[]), "");
+    }
+
+    #[test]
+    fn the_note_is_told_from_the_notes_page_header() {
+        let l = |t: &str| TextLine { rect: [0.0, 0.0, 1.0, 0.1], text: t.into() };
+        let page = vec![l("Flipbook"), l("Pictures that play"), l("A GIF, frame by frame"), l("The animation starts when the slide appears and loops while you"), l("talk."), l("new notes")];
+        let note = "The animation starts when the slide appears and loops while you talk.\n\nnew notes";
+        let body: Vec<String> = note_body_lines(page.clone(), Some(note)).into_iter().map(|x| x.text).collect();
+        assert_eq!(body, vec!["The animation starts when the slide appears and loops while you", "talk.", "new notes"]);
+        // A word cut by hyphenation at the end of a line, and the slide's small picture left out.
+        let mut cut = vec![l("Today I am presenting my dis-"), l("sertation on voice programming")];
+        cut.push(TextLine { rect: [0.0, 0.0, 0.2, 0.02], text: "presenting my dissertation".into() });
+        let body = note_body_lines(cut, Some("Today I am presenting my dissertation on voice programming"));
+        assert_eq!(body.len(), 2, "{body:?}");
+        // Without the note, or with notes made some other way, every line counts.
+        assert_eq!(note_body_lines(page.clone(), None).len(), 6);
+        assert_eq!(note_body_lines(page, Some("something else entirely")).len(), 6);
+    }
+
+    #[test]
     fn animate_scripts_are_read() {
         let t = vec!["var a2_fps;a2_fps=12.5;a2_gotoNext=function(){if(a2_seekFrame(a2_idx+1)<0){if(a2_playing){a2_seekFrame(0);a2_setFps(12.5);}else{a2_stopLast();}}};a2_seekFrame(0);}if(a2_playsRight){a2_playFwd();}else{a2_playBwd();}".to_string()];
         assert_eq!(animate_settings(&t, "2"), (12.5, true, AnimEnd::Loop));
@@ -654,6 +832,18 @@ mod tests {
         assert!(doc.pages[0].text_left.contains("Sample Lecture"));
         assert!(doc.pages[0].text_right.contains("Thanks for being here"));
         assert!(!doc.pages[0].text_left.contains("Thanks for being here"));
+
+        // The notes half's lines, top to bottom, for the reading guide: the note's own lines, not the
+        // header with the talk's title above them.
+        let notes = lines_in(&doc.pages[0].lines, Region::Right);
+        assert!(notes.len() >= 5, "{notes:?}");
+        assert!(notes.iter().all(|l| l.rect[0] >= 0.0 && l.rect[2] <= 1.01), "{notes:?}");
+        assert!(notes.windows(2).all(|w| w[0].rect[1] <= w[1].rect[1]), "top to bottom: {notes:?}");
+        let note = "Hi everyone. **Thanks for being here.** Today I am walking through a sample lecture on graph search.\nWe will explore where the classic algorithms come from and what they mean for real workloads.\nThe big idea is: if we want results people can trust, we need structure, not just speed.\nBefore diving in, let me quickly outline what we will cover today.";
+        let body = note_body_lines(notes.clone(), Some(note));
+        assert!(body.len() < notes.len(), "the header lines are left out: {body:?}");
+        assert!(body[0].text.starts_with("Hi everyone"), "{body:?}");
+        assert!(body.last().unwrap().text.contains("cover today"), "{body:?}");
 
         // Bookmarks, and the citation links on the history slide (frame 5, page 8).
         assert!(doc.outline.iter().any(|o| o.title == "Introduction"), "{:?}", doc.outline);

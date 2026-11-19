@@ -43,6 +43,9 @@ pub enum View {
     Presenter,
     /// Slide and notes side by side in one window.
     Split,
+    /// The teleprompter: the whole talk's notes as one script that scrolls by itself, with the
+    /// current and next slide beside it.
+    Teleprompter,
     Overview,
     /// The LaTeX studio: source editor, slide preview and compile messages.
     Studio,
@@ -305,6 +308,27 @@ pub struct App {
     /// Notes just written into the .tex source, by slide. They show at once, while the slides
     /// rebuild, and give way when the source's note for that slide is changed in the studio.
     pub note_pending: crate::notes::Notes,
+    /// A build that includes the notes written into the source has finished, so the PDF it opens has
+    /// them on its notes pages and `note_pending` can go.
+    pub notes_built: bool,
+    /// The notes' reading guide: the slide (frame) it is on and the line it marks.
+    pub note_line: Option<(usize, usize)>,
+    /// How many lines the notes had when last drawn, and whether the guide just moved (to scroll to it).
+    pub note_lines_shown: usize,
+    pub note_line_moved: bool,
+    /// Whether the teleprompter's script is scrolling now.
+    pub prompter_on: bool,
+    /// How far the script is scrolled, and the slide whose notes it last brought into place.
+    pub prompter_offset: f32,
+    pub prompter_frame: Option<usize>,
+    /// Where each slide's notes start in the script, as last drawn; how far it can scroll.
+    pub prompter_marks: Vec<(usize, f32)>,
+    pub prompter_end: f32,
+    /// Where the script is gliding to; a slide whose notes to bring into place once known; lines to
+    /// move by hand (Down and Up).
+    pub prompter_target: Option<f32>,
+    pub prompter_seek: Option<usize>,
+    pub prompter_nudge: f32,
     pub sync_mark: Option<(usize, [f32; 2], Instant)>,
     /// Animations in the PDF (the animate package): where each one is in its play, by (page, number).
     pub anim_play: HashMap<(usize, usize), AnimPlay>,
@@ -492,6 +516,18 @@ impl App {
             compile_note: String::new(),
             open_after_compile: false,
             note_pending: crate::notes::Notes::new(),
+            notes_built: false,
+            note_line: None,
+            note_lines_shown: 0,
+            note_line_moved: false,
+            prompter_on: false,
+            prompter_offset: 0.0,
+            prompter_frame: None,
+            prompter_marks: vec![],
+            prompter_end: 0.0,
+            prompter_target: None,
+            prompter_seek: None,
+            prompter_nudge: 0.0,
             sync_mark: None,
             anim_play: HashMap::new(),
             anim_cache: HashMap::new(),
@@ -547,6 +583,7 @@ impl App {
                 Some("overview") => app.view = View::Overview,
                 Some("studio") => app.view = View::Studio,
                 Some("split") => app.view = View::Split,
+                Some("teleprompter") => app.show_prompter(),
                 Some("swap") => app.swap = true,
                 _ => {}
             }
@@ -674,6 +711,8 @@ impl App {
             self.side = Sidecar::load(&doc.path);
             self.notes = notes::load_notes(&doc.path);
             self.note_pending.clear();
+            self.notes_built = false;
+            self.note_line = None;
             for (k, v) in notes::load_pdfpc(&doc.path.with_extension("pdfpc")) {
                 self.notes.entry(k).or_insert(v);
             }
@@ -707,6 +746,11 @@ impl App {
         self.anim_page = None;
         self.doc = Some(doc);
         self.rebuild_deck();
+        // The rebuilt slides carry the notes just written, on their notes pages too: the notes area
+        // shows those pages again, as before the edit. (A note written since waits for its own build.)
+        if same && std::mem::take(&mut self.notes_built) && !self.compiling {
+            self.note_pending.clear();
+        }
         if let Some(g) = self.goto_on_open.take() {
             self.cur = g.min(self.deck.slides.len().saturating_sub(1));
         }
@@ -776,6 +820,55 @@ impl App {
     // ---------- editing notes ----------
 
     /// Opens the notes of the slide on screen for editing, in the notes panel.
+    /// Moves the notes' reading guide one line down or up. The first press marks the first line. It
+    /// stays within the notes of the slide on show: it never changes the slide, so reading along can
+    /// never move the audience's screen. A new slide starts without it.
+    pub fn move_note_line(&mut self, down: bool) {
+        let n = self.note_lines_shown;
+        if n == 0 {
+            self.note_line = None;
+            return;
+        }
+        let at = self.note_line_here().map(|i| i.min(n - 1));
+        let next = match at {
+            None => 0,
+            Some(i) if down => (i + 1).min(n - 1),
+            Some(i) => i.saturating_sub(1),
+        };
+        self.note_line = Some((self.frame(), next));
+        self.note_line_moved = true;
+    }
+
+    /// Whether the teleprompter view is on screen.
+    pub fn prompter_shown(&self) -> bool {
+        self.view == View::Teleprompter
+    }
+
+    /// Opens the teleprompter view, with the slide on show's notes at the reading line.
+    pub fn show_prompter(&mut self) {
+        if self.view != View::Teleprompter {
+            self.view = View::Teleprompter;
+            self.prompter_seek = Some(self.frame());
+        }
+    }
+
+    /// The notes of a slide for the teleprompter: as written, or else the text of its notes page.
+    pub fn prompter_text(&self, frame: usize) -> Option<String> {
+        self.note_for(frame).or_else(|| {
+            let slide = self.deck.frames.get(frame)?.first;
+            let (p, reg) = self.deck.slides.get(slide)?.notes?;
+            let lines = crate::pdf::lines_in(&self.doc.as_ref()?.pages.get(p)?.lines, reg);
+            Some(crate::pdf::lines_as_text(&lines)).filter(|t| !t.trim().is_empty())
+        })
+    }
+
+    /// The line the reading guide marks on the slide on show, if any. It belongs to the slide, not
+    /// the overlay step, so it stays while the slide's steps come in.
+    pub fn note_line_here(&self) -> Option<usize> {
+        let f = self.frame();
+        self.note_line.filter(|(s, _)| *s == f).map(|(_, i)| i)
+    }
+
     pub fn begin_note_edit(&mut self) {
         if self.doc.is_none() {
             return;
@@ -917,6 +1010,10 @@ impl App {
             );
             self.status = self.compile_note.clone();
             self.open_after_compile = false;
+            // With no newer build waiting, this PDF holds every note written into the source.
+            if !self.compile_again && !self.note_pending.is_empty() {
+                self.notes_built = true;
+            }
             self.load_pdf(&r.pdf);
         } else {
             let first = self.problems.iter().find(|p| p.is_error).map(|p| p.message.clone());
@@ -1301,7 +1398,7 @@ impl App {
                 self.session.visit(f);
             }
         }
-        let presenting = matches!(self.view, View::Presenter | View::Split);
+        let presenting = matches!(self.view, View::Presenter | View::Split | View::Teleprompter);
         if !self.timer_on && !self.timer_touched && self.frozen.is_none() && presenting {
             self.start_timer();
         }
@@ -1721,6 +1818,29 @@ impl App {
                 }
             }
             Jump => self.focus_jump = true,
+            // In the overview, Down and Up still move through the slides.
+            NoteLineNext if self.view == View::Overview => self.goto(self.cur + 1),
+            NoteLinePrev if self.view == View::Overview => self.goto(self.cur.saturating_sub(1)),
+            // On the teleprompter, Down and Up move the script a line by hand.
+            NoteLineNext if self.prompter_shown() => self.prompter_nudge += 1.0,
+            NoteLinePrev if self.prompter_shown() => self.prompter_nudge -= 1.0,
+            PrompterPlay => {
+                if self.prompter_shown() {
+                    self.prompter_on = !self.prompter_on;
+                    self.prompter_target = None;
+                } else {
+                    self.show_prompter();
+                    self.prompter_on = true;
+                }
+            }
+            PrompterFaster | PrompterSlower => {
+                let by = if a == PrompterFaster { 0.5 } else { -0.5 };
+                self.st.prompter_speed = (self.st.prompter_speed + by).clamp(1.0, 10.0);
+                self.status = format!("Teleprompter speed {:.1}", self.st.prompter_speed);
+                self.save_layout();
+            }
+            NoteLineNext => self.move_note_line(true),
+            NoteLinePrev => self.move_note_line(false),
             ToggleTimer => {
                 if self.timer_on {
                     self.pause_timer();
@@ -2085,7 +2205,7 @@ impl App {
     pub fn script_report(&self) -> String {
         let ink: usize = self.side.ink.values().map(Vec::len).sum();
         format!(
-            "slide={} frame={} step={} tool={:?} screen={:?} frozen={:?} zoom={} ink={} laser={} timer={} audience={} swap={} history={} view={:?} questions={} slides={} tabs={:?} active={} bookmarks={:?} asked={:?} about={} update={:?} notice={:?} saved={:?} layout={:?} level={:.2} elapsed={:.1} target={} left={:?} missing={} warn={} status={:?} note={:?} cli={} copied={:?} syscheck={} packages={} recent={} toast={} skipped={:?} draft={:?} line={} log_open={} wrap={} follow={} anims={:?} videos={:?} clip={:?} avsync={:?} dirty={}",
+            "slide={} frame={} step={} tool={:?} screen={:?} frozen={:?} zoom={} ink={} laser={} timer={} audience={} swap={} history={} view={:?} questions={} slides={} tabs={:?} active={} bookmarks={:?} asked={:?} about={} update={:?} notice={:?} saved={:?} layout={:?} level={:.2} elapsed={:.1} target={} left={:?} missing={} warn={} status={:?} note={:?} cli={} copied={:?} syscheck={} packages={} recent={} toast={} skipped={:?} draft={:?} line={} log_open={} wrap={} follow={} anims={:?} videos={:?} clip={:?} avsync={:?} dirty={} notes_shown={:?} pending={} reading={:?}/{} prompter={} playing={} offset={:.0}/{:.0} speed={:.1}",
             self.cur + 1,
             self.frame() + 1,
             self.deck.slides.get(self.cur).map(|s| s.step + 1).unwrap_or(0),
@@ -2154,6 +2274,15 @@ impl App {
                 })
                 .collect::<Vec<_>>(),
             self.src.as_ref().is_some_and(|s| s.dirty),
+            self.notes_mode(),
+            self.note_pending.len(),
+            self.note_line_here(),
+            self.note_lines_shown,
+            self.prompter_shown(),
+            self.prompter_on,
+            self.prompter_offset,
+            self.prompter_end,
+            self.st.prompter_speed,
         )
     }
 
