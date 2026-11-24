@@ -18,7 +18,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | Inter font (Rasmus Andersson) | SIL Open Font License 1.1 | https://rsms.me/inter/ |
 | Hack and Ubuntu Light fonts (inside egui) | MIT; Ubuntu Font Licence | https://github.com/emilk/egui |
 
-## Rust libraries built into the program (432)
+## Rust libraries built into the program (435)
 
 | Library | Version | Licence | Source |
 |---|---|---|---|
@@ -267,6 +267,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | poll-promise | 0.3.0 | MIT OR Apache-2.0 | https://github.com/EmbarkStudios/poll-promise |
 | polling | 3.11.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/polling |
 | pollster | 0.4.0 | Apache-2.0/MIT | https://github.com/zesterer/pollster |
+| pollster | 1.0.3 | MIT OR Apache-2.0 | https://github.com/zesterer/pollster |
 | polycool | 0.4.0 | MIT OR Apache-2.0 | https://github.com/linebender/kurbo |
 | portable-atomic | 1.15.0 | Apache-2.0 OR MIT | https://github.com/taiki-e/portable-atomic |
 | portable-atomic-util | 0.2.8 | Apache-2.0 OR MIT | https://github.com/taiki-e/portable-atomic-util |
@@ -283,6 +284,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | rav1d | 1.1.0 | BSD-2-Clause | https://github.com/memorysafety/rav1d |
 | raw-cpuid | 11.6.0 | MIT | https://github.com/gz/rust-cpuid |
 | raw-window-handle | 0.6.2 | MIT OR Apache-2.0 OR Zlib | https://github.com/rust-windowing/raw-window-handle |
+| raw-window-metal | 1.1.0 | MIT OR Apache-2.0 | https://github.com/rust-windowing/raw-window-metal |
 | read-fonts | 0.41.0 | MIT OR Apache-2.0 | https://github.com/googlefonts/fontations |
 | redox_syscall | 0.4.1 | MIT | https://gitlab.redox-os.org/redox-os/syscall |
 | redox_syscall | 0.5.18 | MIT | https://gitlab.redox-os.org/redox-os/syscall |
@@ -395,6 +397,7 @@ ffmpeg and VLC have their own licences (LGPL/GPL), which apply to the copies you
 | weezl | 0.1.12 | MIT OR Apache-2.0 | https://github.com/image-rs/weezl |
 | wgpu | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | wgpu-core | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
+| wgpu-core-deps-apple | 30.0.2 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | wgpu-core-deps-windows-linux-android | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | wgpu-hal | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | wgpu-naga-bridge | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |

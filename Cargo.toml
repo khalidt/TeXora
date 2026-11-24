@@ -12,7 +12,7 @@ name = "TeXora"
 path = "src/main.rs"
 
 [dependencies]
-eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts", "wayland", "x11", "clipboard", "links", "system_fonts"] }
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wayland", "x11", "clipboard", "links", "system_fonts"] }
 egui = "0.37"
 pdfium-render = "0.9.5"
 image = { version = "0.25", default-features = false, features = ["png", "gif", "jpeg", "tiff", "bmp", "webp"] }
@@ -31,6 +31,17 @@ md-5 = "0.11"
 avif-decode = { version = "3", default-features = false }
 jxl-oxide = { version = "0.12", default-features = false }
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
+
+# Use Metal on macOS to avoid OpenGL texture creation failures when opening a second viewport.
+[target.'cfg(target_os = "macos")'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["wgpu_no_default_features"] }
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["NSApplication", "NSScreen", "NSWindow"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["NSValue"] }
+wgpu = { version = "30", default-features = false, features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["glow"] }
 
 # Fonts for other writing systems (Arabic, Hebrew, Chinese, Japanese, Korean, Hindi, Thai...) come from
 # the computer itself. On Linux, fontconfig is opened when the program runs instead of being linked, so

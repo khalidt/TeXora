@@ -1856,7 +1856,7 @@ impl App {
                     self.audience_open = true;
                     self.audience_tab = self.active_id();
                     self.audience_age = 0;
-                    self.audience_full = false;
+                    self.audience_full = cfg!(target_os = "macos") && self.displays.len() >= 2;
                     self.start_timer();
                     if self.displays.len() < 2 {
                         self.status = "One display found. Press F11 for fullscreen slides.".to_string();
@@ -1866,7 +1866,9 @@ impl App {
             Fullscreen => {
                 if self.audience_open {
                     self.audience_full = !self.audience_full;
-                    ctx.send_viewport_cmd_to(audience_id(), ViewportCommand::Fullscreen(self.audience_full));
+                    if !cfg!(target_os = "macos") || self.displays.len() < 2 {
+                        ctx.send_viewport_cmd_to(audience_id(), ViewportCommand::Fullscreen(self.audience_full));
+                    }
                 } else {
                     let on = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
                     ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Fullscreen(!on));

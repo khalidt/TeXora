@@ -193,6 +193,46 @@ fn soft_button(ui: &Ui, r: Rect, id: &str, tip: &str, enabled: bool, active: boo
     resp
 }
 
+#[cfg(target_os = "macos")]
+fn set_macos_audience_fullscreen(title: &str, display_id: u32, fullscreen: bool) {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::{NSApplication, NSScreen, NSWindowStyleMask, NSMainMenuWindowLevel, NSNormalWindowLevel};
+    use objc2_foundation::{NSNumber, NSString};
+
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let title = NSString::from_str(title);
+    let windows = NSApplication::sharedApplication(mtm).windows();
+    let fullscreen_level = NSMainMenuWindowLevel + 1;
+    let Some(window) = windows.iter().find(|window| {
+        window.title().isEqualToString(&title)
+            && (window.level() == fullscreen_level
+                || !window.styleMask().intersects(NSWindowStyleMask::Titled | NSWindowStyleMask::FullScreen))
+    }) else { return };
+    if !fullscreen {
+        if window.level() == fullscreen_level {
+            window.setLevel(NSNormalWindowLevel);
+        }
+        return;
+    }
+
+    let screen_number = NSString::from_str("NSScreenNumber");
+    let screens = NSScreen::screens(mtm);
+    let Some(screen) = screens.iter().find(|screen| {
+        screen.deviceDescription().objectForKey(&screen_number)
+            .and_then(|number| number.downcast::<NSNumber>().ok())
+            .is_some_and(|number| number.unsignedIntValue() == display_id)
+    }) else { return };
+
+    // Above the menu bar, AppKit can use the display frame instead of its visible work area.
+    if window.level() != fullscreen_level {
+        window.setLevel(fullscreen_level);
+    }
+    let frame = screen.frame();
+    if window.frame() != frame {
+        window.setFrame_display(frame, true);
+    }
+}
+
 impl App {
     /// Draws one PDF page region. Returns false while no picture is available yet.
     pub fn paint_page(&mut self, ui: &Ui, rect: Rect, page: usize, region: Region, uv: Rect) -> bool {
@@ -1797,6 +1837,7 @@ impl App {
     }
 
     pub fn audience_window(&mut self, ctx: &Context) {
+        const TITLE: &str = "TeXora Audience View";
         if !self.audience_open {
             return;
         }
@@ -1807,15 +1848,23 @@ impl App {
             self.activate(i);
         }
         let multi = self.displays.len() >= 2;
-        let mut vb = ViewportBuilder::default().with_title("TeXora Audience View").with_inner_size([960.0, 720.0]);
+        let mut vb = ViewportBuilder::default().with_title(TITLE)
+            .with_decorations(true).with_inner_size([960.0, 720.0]);
         if multi {
             if let Some(d) = self.displays.get(self.display) {
-                let scale = if cfg!(target_os = "macos") { 1.0 } else { d.scale_factor.max(1.0) };
-                vb = vb.with_position(pos2(d.x as f32 / scale + 20.0, d.y as f32 / scale + 20.0));
+                let scale = if cfg!(target_os = "macos") { ctx.zoom_factor() } else { d.scale_factor.max(1.0) };
+                let origin = pos2(d.x as f32 / scale, d.y as f32 / scale);
+                if cfg!(target_os = "macos") && self.audience_full {
+                    // A native fullscreen Space can hide the presenter on the other display.
+                    vb = vb.with_decorations(false).with_position(origin)
+                        .with_inner_size([d.width as f32 / scale, d.height as f32 / scale]);
+                } else {
+                    vb = vb.with_position(origin + vec2(20.0, 20.0));
+                }
             }
         }
         let id = audience_id();
-        if multi && self.audience_age == 12 && !self.audience_full {
+        if !cfg!(target_os = "macos") && multi && self.audience_age == 12 && !self.audience_full {
             self.audience_full = true;
             ctx.send_viewport_cmd_to(id, ViewportCommand::Fullscreen(true));
         }
@@ -1834,6 +1883,12 @@ impl App {
                 c.set_cursor_icon(CursorIcon::None);
             }
         });
+        #[cfg(target_os = "macos")]
+        if multi && self.audience_open {
+            if let Some(display) = self.displays.get(self.display) {
+                set_macos_audience_fullscreen(TITLE, display.id, self.audience_full);
+            }
+        }
         if let Some(i) = self.tab_index(front) {
             self.activate(i);
         }
