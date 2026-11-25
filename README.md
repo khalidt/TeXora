@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.8: Home, the template picker with accessible slides and tagged documents, presenter view with the timer and the reading guide on the notes, the teleprompter scrolling the notes, light and dark, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, analytics, contents and settings" width="760">
+  <img src="screenshots/tour.gif" alt="A tour of TeXora 1.8: Home, the template picker with accessible slides and tagged documents, presenter view with the timer and the reading guide on the notes, the teleprompter scrolling the notes while the slide follows, then in dark, drawing on a large slide, LaTeX studio with folding, the studio's accessibility findings and a jump to the line, the WCAG checker on the PDF and on its tagged copy, an MP4 video, a GIF and animate animations playing inside slides, analytics, contents and settings" width="760">
 </p>
 
 TeXora shows the speaker the notes, the current and next slide and the time, while the audience sees
