@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1
+
+### Fixed
+
+- **Presenting on two displays on macOS.** With "Displays have separate Spaces" turned off, opening the audience window hid the presenter, with its notes, on the other display. The audience window now fills its display without a fullscreen Space of its own, above the menu bar, and the presenter stays visible. **F11** switches it to a normal window and back.
+- **Present on macOS 27.** Opening the audience window could stop TeXora with "Unable to create Texture object". On macOS, TeXora now draws with Metal instead of OpenGL; Windows and Linux are unchanged.
+
 ## 1.8.0
 
 ### New
