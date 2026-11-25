@@ -259,6 +259,30 @@ pub fn add_new_actions(keys: &mut Vec<(Action, Vec<KeyBind>)>) {
     }
 }
 
+/// How a slide takes the audience screen when their shapes differ (a 4:3 slide on a 16:9 TV, a
+/// wide slide on a tall screen).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+pub enum AudienceFit {
+    /// The whole slide, as large as fits; bands fill the rest of the screen.
+    #[default]
+    Fit,
+    /// The screen filled, keeping the slide's shape; the slide's edges are cut off.
+    Fill,
+    /// The screen filled by stretching the slide to its shape.
+    Stretch,
+}
+
+impl AudienceFit {
+    pub const ALL: [AudienceFit; 3] = [AudienceFit::Fit, AudienceFit::Fill, AudienceFit::Stretch];
+    pub fn label(self) -> &'static str {
+        match self {
+            AudienceFit::Fit => "Fit: the whole slide, bands at the sides",
+            AudienceFit::Fill => "Fill: the whole screen, slide edges trimmed",
+            AudienceFit::Stretch => "Stretch: the whole screen, slide stretched",
+        }
+    }
+}
+
 /// The teleprompter's two looks, as (background, text): dark text on light, and light text on dark.
 pub const PROMPTER_LIGHT: ([u8; 3], [u8; 3]) = ([252, 251, 249], [20, 20, 20]);
 pub const PROMPTER_DARK: ([u8; 3], [u8; 3]) = ([18, 18, 20], [236, 235, 230]);
@@ -295,6 +319,9 @@ pub struct Settings {
     pub prompter_speed: f32,
     /// When the teleprompter's script reaches the next slide's notes, that slide comes on show.
     pub prompter_follow: bool,
+    /// The teleprompter's band sits on the line being read and glides from line to line, instead of
+    /// staying at the reading line.
+    pub prompter_band_lines: bool,
     /// The teleprompter's background and text colours (light by default; Dark swaps them).
     pub prompter_bg: [u8; 3],
     pub prompter_fg: [u8; 3],
@@ -312,6 +339,13 @@ pub struct Settings {
     pub vlc_path: String,
     /// Videos play their sound (through ffplay, which comes with ffmpeg).
     pub video_sound: bool,
+    /// Look for displays plugged in or out while the app is open, every `display_check_secs`.
+    pub detect_displays: bool,
+    pub display_check_secs: f32,
+    /// How the slide takes the audience screen, and whether it is drawn at the screen's full
+    /// resolution (up to 4K).
+    pub audience_fit: AudienceFit,
+    pub audience_hires: bool,
     /// Look for a newer version when TeXora starts.
     pub check_updates: bool,
     /// A newer version the speaker chose to skip: its update notice is not shown again.
@@ -334,6 +368,7 @@ impl Default for Settings {
             notes_size: 26.0,
             prompter_speed: 4.0,
             prompter_follow: true,
+            prompter_band_lines: false,
             prompter_bg: PROMPTER_LIGHT.0,
             prompter_fg: PROMPTER_LIGHT.1,
             notes_in_tex: true,
@@ -343,6 +378,10 @@ impl Default for Settings {
             ffmpeg_path: String::new(),
             vlc_path: String::new(),
             video_sound: true,
+            detect_displays: true,
+            display_check_secs: 2.0,
+            audience_fit: AudienceFit::Fit,
+            audience_hires: true,
             check_updates: true,
             skipped_update: String::new(),
             last_template: String::new(),

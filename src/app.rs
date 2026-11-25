@@ -31,6 +31,8 @@ pub const PALETTE: [[u8; 3]; 6] =
     [[214, 40, 40], [240, 150, 20], [240, 210, 40], [40, 160, 70], [30, 110, 220], [170, 60, 200]];
 
 const MAX_RENDER_WIDTH: u32 = 3000;
+/// The widest the audience screen's slide is drawn in high resolution (a 4K display).
+const AUDIENCE_MAX_WIDTH: u32 = 4096;
 pub const SAMPLE_TEX: &str = include_str!("../assets/sample/texora-sample.tex");
 pub const SAMPLE_PDF: &[u8] = include_bytes!("../assets/sample/texora-sample.pdf");
 const SAMPLE_NAV: &str = include_str!("../assets/sample/texora-sample.nav");
@@ -275,6 +277,8 @@ pub struct App {
     pub audience_age: u32,
     pub displays: Vec<display_info::DisplayInfo>,
     pub display: usize,
+    /// When the displays were last looked at.
+    pub displays_checked: Instant,
 
     pub src: Option<Source>,
     pub compiling: bool,
@@ -329,6 +333,10 @@ pub struct App {
     pub prompter_target: Option<f32>,
     pub prompter_seek: Option<usize>,
     pub prompter_nudge: f32,
+    /// The script's lines of text, as last drawn (top and bottom, in script units), and where the
+    /// reading band is (its middle and height), gliding from line to line.
+    pub prompter_rows: Vec<(f32, f32)>,
+    pub prompter_band: Option<(f32, f32)>,
     pub sync_mark: Option<(usize, [f32; 2], Instant)>,
     /// Animations in the PDF (the animate package): where each one is in its play, by (page, number).
     pub anim_play: HashMap<(usize, usize), AnimPlay>,
@@ -492,6 +500,7 @@ impl App {
             audience_age: 0,
             displays,
             display,
+            displays_checked: Instant::now(),
             src: None,
             compiling: false,
             compile_again: false,
@@ -528,6 +537,8 @@ impl App {
             prompter_target: None,
             prompter_seek: None,
             prompter_nudge: 0.0,
+            prompter_rows: vec![],
+            prompter_band: None,
             sync_mark: None,
             anim_play: HashMap::new(),
             anim_cache: HashMap::new(),
@@ -1036,8 +1047,47 @@ impl App {
 
     // ---------- every frame ----------
 
+    /// Looks again at the connected displays, so a projector or TV plugged in (or out) while
+    /// TeXora is open is found without restarting it. The chosen audience display stays chosen while
+    /// it is connected; a newly connected second display becomes the audience display.
+    /// Settings > Audience screen turns this off, and sets how often it looks.
+    fn refresh_displays(&mut self, ctx: &Context) {
+        if !self.st.detect_displays {
+            return;
+        }
+        let every = std::time::Duration::from_secs_f32(self.st.display_check_secs.clamp(1.0, 30.0));
+        ctx.request_repaint_after(every);
+        if self.displays_checked.elapsed() >= every {
+            self.look_for_displays();
+        }
+    }
+
+    /// Reads the connected displays now (also **Present > Audience screen > Look for displays now**).
+    pub fn look_for_displays(&mut self) {
+        self.displays_checked = Instant::now();
+        let Ok(now) = display_info::DisplayInfo::all() else { return };
+        let ids = |l: &[display_info::DisplayInfo]| l.iter().map(|d| (d.id, d.x, d.y, d.width, d.height)).collect::<Vec<_>>();
+        if now.is_empty() || ids(&now) == ids(&self.displays) {
+            return;
+        }
+        let chosen = self.displays.get(self.display).map(|d| d.id);
+        let before = self.displays.len();
+        self.display = chosen
+            .and_then(|id| now.iter().position(|d| d.id == id && (now.len() < 2 || !d.is_primary)))
+            .or_else(|| now.iter().position(|d| !d.is_primary))
+            .unwrap_or(0);
+        let name = |d: &display_info::DisplayInfo| if d.friendly_name.is_empty() { "a display".to_string() } else { d.friendly_name.clone() };
+        if now.len() > before && now.len() >= 2 {
+            self.status = format!("{} connected: the slides will show there. Press F5 to present.", name(&now[self.display]));
+        } else if now.len() < before {
+            self.status = if now.len() < 2 { "Second display disconnected. Press F11 for fullscreen slides.".to_string() } else { "A display was disconnected.".to_string() };
+        }
+        self.displays = now;
+    }
+
     pub fn pump(&mut self, ctx: &Context) {
         self.tick += 1;
+        self.refresh_displays(ctx);
         // The audience window is drawn from this one, and macOS stops drawing a hidden window, as
         // it does behind a fullscreen slide on one screen. A talk must not freeze because of that.
         // This request lasts one frame, so it is sent every frame.
@@ -1345,11 +1395,17 @@ impl App {
     pub fn texture(&mut self, page: usize, region: Region, want: u32) -> Option<TextureHandle> {
         // Sizes come in steps, and a page is never rendered larger than is useful, so zooming
         // reuses pictures instead of queueing a new huge one for every small change.
-        let want = match want {
-            0..=1600 => want.max(64).div_ceil(32) * 32,
-            1601..=2000 => 2000,
-            2001..=2500 => 2500,
-            _ => MAX_RENDER_WIDTH,
+        // The audience screen in high resolution gets the width it really shows, up to 4K, so text
+        // stays sharp on a large display.
+        let want = if self.painting_audience && self.st.audience_hires {
+            want.clamp(64, AUDIENCE_MAX_WIDTH).div_ceil(64) * 64
+        } else {
+            match want {
+                0..=1600 => want.max(64).div_ceil(32) * 32,
+                1601..=2000 => 2000,
+                2001..=2500 => 2500,
+                _ => MAX_RENDER_WIDTH,
+            }
         };
         let settling = self.zoom_changed.elapsed().as_secs_f32() < 0.18;
         let tick = self.tick;

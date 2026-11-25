@@ -98,6 +98,21 @@ pub fn sid(name: &str) -> Id {
 }
 
 /// Largest rectangle of this shape inside `r`; at the top, or centred.
+/// Where the slide goes on the audience screen `full`: the whole slide (Fit), covering the screen
+/// with the slide's edges beyond it (Fill), or the screen's own shape (Stretch).
+pub fn audience_rect(full: Rect, aspect: f32, how: crate::settings::AudienceFit) -> Rect {
+    use crate::settings::AudienceFit;
+    let aspect = aspect.max(0.1);
+    match how {
+        AudienceFit::Fit => fit(full, aspect, false),
+        AudienceFit::Stretch => full,
+        AudienceFit::Fill => {
+            let w = full.width().max(full.height() * aspect);
+            Rect::from_center_size(full.center(), vec2(w, w / aspect))
+        }
+    }
+}
+
 pub fn fit(r: Rect, aspect: f32, top: bool) -> Rect {
     let w = r.width().min(r.height() * aspect);
     let h = w / aspect;
@@ -680,7 +695,14 @@ impl App {
                 None => (1.0 - (next_fit + gap) / col.height().max(1.0)).clamp(0.3, 0.7),
             }
         } else { current_row(col.width(), col.height(), aspect, label + 34.0, gap) };
-        let row_share = (if large { self.st.layout.large_row } else { self.st.layout.presenter_row }).unwrap_or(auto_row);
+        // The current slide never gets smaller than its automatic fit: a divider saved in another
+        // window size, or dragged too far, would otherwise leave it smaller than the next slide.
+        // Dragging the divider down still makes it larger.
+        let row_share = if large {
+            self.st.layout.large_row.unwrap_or(auto_row)
+        } else {
+            self.st.layout.presenter_row.map_or(auto_row, |s| s.max(auto_row))
+        };
         let mid = col.top() + col.height() * row_share;
         let top_box = Rect::from_min_max(col.min, pos2(col.right(), mid - gap / 2.0));
         let next_box = Rect::from_min_max(pos2(col.left(), mid + gap / 2.0), col.max);
@@ -1228,7 +1250,17 @@ impl App {
             ui.ctx().request_repaint();
         } else if self.prompter_on {
             // Speed 1 to 10: about a line every four seconds to more than two lines a second.
-            offset += self.st.prompter_speed * size * 0.08 * dt;
+            let step = self.st.prompter_speed * size * 0.08 * dt;
+            // Between slides (the space after a note, the next slide's heading) there is nothing to
+            // read: the script glides quickly to the next line of text and slows to the reading
+            // speed as it arrives, so the band never waits on empty space.
+            let at = offset + line * 0.5;
+            let in_text = self.prompter_rows.iter().any(|r| r.0 - 2.0 <= at && at <= r.1 + 2.0);
+            let next = self.prompter_rows.iter().find(|r| r.0 > at).map(|r| r.0);
+            offset += match (in_text, next) {
+                (false, Some(n)) => step + (n - at - 1.0).max(0.0) * (dt * 6.0).min(1.0),
+                _ => step,
+            };
             ui.ctx().request_repaint();
             read_on = true;
         }
@@ -1250,6 +1282,7 @@ impl App {
         ui.painter().rect_filled(Rect::from_min_max(rect.min, pos2(rect.right(), bar.top() - 2.0)), 8.0 * k, bg);
         let texts: Vec<(String, Option<String>)> = (0..self.deck.frames.len()).map(|f| (self.deck.frames[f].title.clone(), self.prompter_text(f))).collect();
         let mut marks: Vec<(usize, f32)> = vec![];
+        let mut rows: Vec<(f32, f32)> = vec![];
         let mut child = ui.new_child(UiBuilder::new().max_rect(view));
         child.set_clip_rect(view.intersect(ui.clip_rect()));
         let out = ScrollArea::vertical()
@@ -1272,13 +1305,14 @@ impl App {
                     marks.push((f, ui.cursor().top() - top - lead));
                     match text {
                         Some(t) => {
-                            markdown_rows_in(ui, t, size, custom.then_some(fg));
+                            // Each line of text, in the same units as the scroll offset.
+                            rows.extend(markdown_rows_in(ui, t, size, custom.then_some(fg)).iter().map(|r| (r.top() - top - lead, r.bottom() - top - lead)));
                         }
                         None => {
                             ui.label(RichText::new("No notes for this slide.").size((size * 0.6).max(11.0)).italics().color(soft));
                         }
                     }
-                    ui.add_space(size * 1.1);
+                    ui.add_space(size * 0.8);
                 }
                 ui.add_space((view.height() - read_y).max(0.0));
             });
@@ -1328,9 +1362,39 @@ impl App {
             mesh.add_triangle(0, 2, 3);
             ui.painter().add(Shape::mesh(mesh));
         }
-        // The reading line: a soft band across, with a mark at each end.
+        // The reading band sits on the line being read (or, between slides, the next one coming) and
+        // glides from line to line, so it always marks words, never empty space.
+        let at = offset + line * 0.5;
+        let target = rows
+            .iter()
+            .find(|r| r.0 - 2.0 <= at && at <= r.1 + 2.0)
+            .or_else(|| rows.iter().find(|r| r.0 > at))
+            .or(rows.last())
+            .map(|r| ((r.0 + r.1) / 2.0, (r.1 - r.0).max(line * 0.6)))
+            .unwrap_or((at, line));
+        let band_now = match self.prompter_band {
+            Some((c, h)) if (c - target.0).abs() < line * 6.0 => {
+                let t = (dt * 14.0).min(1.0);
+                let next = (c + (target.0 - c) * t, h + (target.1 - h) * t);
+                if (next.0 - target.0).abs() > 0.3 {
+                    ui.ctx().request_repaint();
+                }
+                next
+            }
+            // A jump (a slide chosen, the wheel turned far): the band goes straight there.
+            _ => target,
+        };
+        self.prompter_band = Some(band_now);
+        self.prompter_rows = rows;
         let p = ui.painter().with_clip_rect(view.expand(8.0 * k));
-        let band = Rect::from_center_size(pos2(view.center().x, view.top() + read_y), vec2(view.width() + 12.0 * k, line * 1.05));
+        // At first the band stays at the reading line, as the script scrolls under it; with **Band
+        // follows lines** it sits on the line being read instead.
+        let band = if self.st.prompter_band_lines {
+            let band_y = view.top() + lead + (band_now.0 - offset);
+            Rect::from_center_size(pos2(view.center().x, band_y), vec2(view.width() + 12.0 * k, band_now.1 + line * 0.3))
+        } else {
+            Rect::from_center_size(pos2(view.center().x, view.top() + read_y), vec2(view.width() + 12.0 * k, line * 1.05))
+        };
         p.rect_filled(band, 4.0 * k, Color32::from_rgba_unmultiplied(255, 208, 64, 48));
         for (x, dir) in [(band.left(), 1.0), (band.right(), -1.0)] {
             let c = pos2(x, band.center().y);
@@ -1377,6 +1441,11 @@ impl App {
         let mut follow = self.st.prompter_follow;
         if row.checkbox(&mut follow, RichText::new("Follow slides").size((14.0 * k).max(11.0))).on_hover_text("When the script reaches the next slide's notes, that slide comes on show, for the audience too").changed() {
             self.st.prompter_follow = follow;
+            self.save_layout();
+        }
+        let mut lines = self.st.prompter_band_lines;
+        if row.checkbox(&mut lines, RichText::new("Band follows lines").size((14.0 * k).max(11.0))).on_hover_text("The band sits on the line being read and glides from line to line, instead of staying at the reading line").changed() {
+            self.st.prompter_band_lines = lines;
             self.save_layout();
         }
         // Colours: Dark (light text on a dark background) and back, or a background and text colour
@@ -1818,13 +1887,13 @@ impl App {
         match self.screen {
             Screen::Black => {}
             Screen::White => {
-                let r = fit(full, self.deck.aspect.max(0.1), false);
+                let r = audience_rect(full, self.deck.aspect, self.st.audience_fit);
                 ui.painter().rect_filled(r, 0.0, Color32::WHITE);
                 self.paint_overlays(ui, r, uv_rect(None), idx);
                 self.slide_input(ui, r, idx, "audience-board");
             }
             Screen::Live => {
-                let r = fit(full, self.deck.aspect.max(0.1), false);
+                let r = audience_rect(full, self.deck.aspect, self.st.audience_fit);
                 self.paint_slide(ui, r, idx);
                 // On a single screen the fullscreen slide is the only place to point and draw.
                 self.slide_input(ui, r, idx, "audience-slide");
@@ -2180,6 +2249,30 @@ pub fn engine_combo(ui: &mut Ui, e: &mut Engine) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn audience_slide_fits_fills_or_stretches() {
+        use crate::settings::AudienceFit;
+        let tv = Rect::from_min_size(Pos2::ZERO, vec2(1920.0, 1080.0));
+        let fit = audience_rect(tv, 4.0 / 3.0, AudienceFit::Fit);
+        assert_eq!((fit.width(), fit.height()), (1440.0, 1080.0), "a 4:3 slide keeps its shape, bands at the sides");
+        assert_eq!(fit.center(), tv.center());
+        let fill = audience_rect(tv, 4.0 / 3.0, AudienceFit::Fill);
+        assert_eq!((fill.width(), fill.height()), (1920.0, 1440.0), "the screen is covered, top and bottom trimmed");
+        assert_eq!(fill.center(), tv.center());
+        assert_eq!(audience_rect(tv, 4.0 / 3.0, AudienceFit::Stretch), tv);
+        // A wide slide on a tall screen.
+        let tall = Rect::from_min_size(Pos2::ZERO, vec2(1080.0, 1920.0));
+        let fit = audience_rect(tall, 16.0 / 9.0, AudienceFit::Fit);
+        assert!((fit.width() - 1080.0).abs() < 0.01 && (fit.height() - 607.5).abs() < 0.01);
+        let fill = audience_rect(tall, 16.0 / 9.0, AudienceFit::Fill);
+        assert!((fill.height() - 1920.0).abs() < 0.01 && fill.width() > 1080.0);
+        // A 16:9 slide on a 16:9 screen fills it whichever way.
+        for how in AudienceFit::ALL {
+            let r = audience_rect(tv, 16.0 / 9.0, how);
+            assert!((r.width() - 1920.0).abs() < 0.01 && (r.height() - 1080.0).abs() < 0.01, "{how:?}");
+        }
+    }
 
     /// The case from the report: a 4:3 notes page in a wide window left an empty strip beside it.
     #[test]
