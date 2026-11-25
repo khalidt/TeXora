@@ -282,6 +282,36 @@ impl App {
         });
     }
 
+    /// Settings > Audience screen: finding displays, and how the slide takes the screen.
+    pub fn audience_settings(&mut self, ui: &mut Ui) {
+        let mut changed = false;
+        changed |= ui.checkbox(&mut self.st.detect_displays, "Detect displays automatically").on_hover_text("Finds a projector or TV plugged in, or out, while the app is open").changed();
+        ui.add_enabled_ui(self.st.detect_displays, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Look every");
+                changed |= ui.add(Slider::new(&mut self.st.display_check_secs, 1.0..=30.0).step_by(1.0).suffix(" s")).changed();
+            });
+        });
+        if ui.button("Look for displays now").clicked() {
+            self.look_for_displays();
+            if self.status.is_empty() {
+                self.status = format!("{} display{} found.", self.displays.len(), if self.displays.len() == 1 { "" } else { "s" });
+            }
+        }
+        ui.add_space(6.0);
+        ui.label(RichText::new("When the slide's shape differs from the screen's (a 4:3 slide on a 16:9 TV):").size(12.5).color(MUTED));
+        for f in crate::settings::AudienceFit::ALL {
+            changed |= ui.radio_value(&mut self.st.audience_fit, f, f.label()).changed();
+        }
+        changed |= ui
+            .checkbox(&mut self.st.audience_hires, "High resolution (the screen's own pixels, up to 4K)")
+            .on_hover_text("Sharper text on large displays; uses more memory")
+            .changed();
+        if changed {
+            self.save_layout();
+        }
+    }
+
     fn settings_tab(&mut self, ui: &mut Ui) {
         ScrollArea::vertical().auto_shrink([false, true]).show(ui, |ui| {
             ui.label(RichText::new("Click a heading to open or close its section.").size(12.0).color(MUTED));
@@ -316,6 +346,7 @@ impl App {
             let force = std::mem::take(&mut self.show_packages).then_some(true);
             ui.add_space(4.0);
             CollapsingHeader::new(strong("Required LaTeX packages", 14.5)).id_salt(("settings", "Required LaTeX packages")).default_open(false).open(force).show(ui, |ui| self.required_packages(ui));
+            group(ui, "Audience screen", false, &mut |ui| self.audience_settings(ui));
             group(ui, "Video", false, &mut |ui| self.video_settings(ui));
             group(ui, "Speaker notes", false, &mut |ui| {
                 // A LaTeX presentation keeps its notes in the source, as \note{} in each slide.

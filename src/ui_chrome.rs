@@ -851,6 +851,8 @@ impl App {
                 for (i, n) in names.into_iter().enumerate() {
                     ui.radio_value(&mut self.display, i, n);
                 }
+                ui.separator();
+                self.audience_settings(ui);
             });
             ui.separator();
             self.item(ui, "Black screen", Action::Blackout);

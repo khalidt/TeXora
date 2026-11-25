@@ -182,7 +182,14 @@ Drag the dividers to resize panels; **View > Fit all panels automatically** rese
 ### Audience window
 
 - **F5** opens the audience window, fullscreen on a second display; on a single display, **F11**
-  makes it fullscreen.
+  makes it fullscreen. A projector or TV plugged in while TeXora is open is found within a few
+  seconds; **Present > Audience screen** lists the displays.
+- **Settings > Audience screen** (also under **Present > Audience screen**): **Detect displays
+  automatically** and how often to look; **Fit** (the whole slide, bands at the sides), **Fill** (the
+  whole screen, slide edges trimmed) or **Stretch** when the slide's shape differs from the screen's;
+  and **High resolution**, the screen's own pixels up to 4K.
+- A 4:3 slide on a 16:9 TV shows bands with **Fit**. For slides that fill a widescreen display, use
+  `\documentclass[aspectratio=169]{beamer}`.
 - **B** blanks the screen, **W** shows a whiteboard, **F** freezes the audience view.
 - Ink, the laser pointer and zoom appear on the audience screen as they are used.
 
@@ -240,7 +247,9 @@ with **View > Teleprompter**, or with **K**, which also starts it.
 | **Dark**          | Light text on a dark background; click again for dark text on light                                       |           |
 | **Background**, **Text** | Pick any colours; remembered                                                                       |           |
 
-A band marks the reading line. Moving to another slide brings its notes to the reading line. The
+A band marks the reading line; between slides the script moves quickly past the blank space to the
+next slide's first line. **Band follows lines** puts the band on the line being read instead. Moving to another slide brings its notes
+to the reading line. The
 wheel, or **Down** and **Up**, move the script by hand, and Cmd/Ctrl with the wheel changes the text
 size. The notes come from the source, the `.note.md` file or the text of Beamer notes pages.
 

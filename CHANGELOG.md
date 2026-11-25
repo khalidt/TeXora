@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.8.2
+
+### New
+
+- **Audience screen settings** (Settings > Audience screen, also under Present > Audience screen). **Detect displays automatically** (on at first) finds a projector or TV plugged in or out while TeXora is open, and **Look every** sets how often, from 1 to 30 seconds; **Look for displays now** checks at once. When the slide's shape differs from the screen's, **Fit** shows the whole slide with bands at the sides, **Fill** covers the screen and trims the slide's edges, and **Stretch** stretches the slide to the screen. **High resolution** (on at first) draws the slide with the screen's own pixels, up to 4K.
+
+### Fixed
+
+- **A projector or TV plugged in while TeXora is open is now found.** Before, TeXora only saw the displays connected when it started; it now makes a newly connected display the audience screen and says so, and notices one being unplugged.
+- **The teleprompter no longer lingers between slides.** When a slide's notes end, the script moves quickly past the blank space and the next slide's heading to the next slide's first line, then goes on at the reading speed, so the reading band never waits on empty space. The space between slides is also smaller. **Band follows lines** (off at first) puts the band on the line being read, gliding from line to line, instead of at a fixed reading line.
+- **The current slide in the presenter view is again at least as large as its automatic fit.** A divider saved earlier, or in another window size, could leave the current slide smaller than the next one; it now fills its column and grows with the window.
+
 ## 1.8.1
 
 ### Fixed
