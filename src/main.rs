@@ -80,6 +80,12 @@ impl eframe::App for Root {
         self.app.script_input(raw);
     }
 
+    #[cfg(target_os = "macos")]
+    fn on_exit(&mut self) {
+        self.app.on_exit();
+    }
+
+    #[cfg(not(target_os = "macos"))]
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         self.app.on_exit();
     }
